@@ -4,7 +4,7 @@
 
 Built by Aariv Patel for the [Next Founders Hackathon](https://next-founders.devpost.com/) (October 2026).
 
-**Live demo:** https://draarivpatel-ui.github.io/Tutorloop/ (once GitHub Pages is enabled, see [Deploy](#deploy-github-pages)). Click **"Try it with sample data"** to explore. The sample students are fictional.
+**Live demo:** https://aariv.me/Tutorloop/ (GitHub Pages on a custom domain; the github.io address redirects there). **Why TutorLoop / pricing:** https://aariv.me/Tutorloop/#about. Click **"Try it with sample data"** to explore. The sample students are fictional.
 
 ---
 
@@ -65,8 +65,8 @@ The result is **$0 per report, no student data sent to a third party, and it wor
 | Suite | Command | What it covers |
 |---|---|---|
 | Unit (33 tests, no dependencies) | `npm test` | Money and rounding, validation (including impossible dates), plan limits, stats, balances, monthly series, goal progress, presets, sentiment and negation, report wording, reminders, invoices, CSV escaping and **formula injection**, import normalisation, and a 5,000-session performance check |
-| DOM smoke (16 checks, jsdom) | `npm i && npm run test:dom` | Every route renders, forms, plan limit, **XSS escaping**, persistence, undo, bad URLs |
-| End-to-end (53 checks, real headless Chromium) | `pip install playwright && python -m playwright install chromium && python tests/e2e.py` | Real clicks with native form behaviour, decimal rates, XSS, undo (button and Ctrl+Z), CSV download, plan limit, archive/restore/delete, report presets and editing, backup round trip, corrupt-storage recovery, keyboard focus and skip link, **offline reload through the service worker**, no console errors, **axe-core WCAG 2.1 AA: 0 violations on all 7 pages**, **no horizontal overflow at 1280px and 390px**, and print stylesheets |
+| DOM smoke (19 checks, jsdom) | `npm i && npm run test:dom` | Every route renders, forms, plan limit, **XSS escaping**, persistence, undo, bad URLs, pitch-page honesty and fee math |
+| End-to-end (64 checks, real headless Chromium, app served from a `/Tutorloop/` sub-path like production) | `pip install playwright && python -m playwright install chromium && python tests/e2e.py` | Real clicks with native form behaviour, decimal rates, XSS, undo (button and Ctrl+Z), CSV download, plan limit, archive/restore/delete, report presets and editing, backup round trip, corrupt-storage recovery, keyboard focus and skip link, **offline reload through the service worker**, **service worker scope, manifest paths and cache isolation on a shared origin**, no console errors, **axe-core WCAG 2.1 AA: 0 violations on all 8 pages**, **no horizontal overflow at 1280px and 390px**, and print stylesheets |
 
 `docs/REVIEW_LOG.md` records the review loop used to harden the app: the problems found in each iteration and how each was fixed.
 
@@ -99,13 +99,13 @@ The cost to serve a free user is close to $0 (static hosting, on-device processi
 python3 -m http.server 8080      # then open http://localhost:8080
 npm test                         # unit tests (no install needed)
 npm i && npm run test:dom        # jsdom smoke test
-python3 tests/e2e.py             # e2e (needs: pip install playwright && python -m playwright install chromium)
+python3 tests/e2e.py             # e2e (needs: pip install playwright && python -m playwright install chromium; or CHROMIUM_PATH=/usr/bin/chromium to use a system Chromium)
 SHOTS=out python3 tests/e2e.py   # e2e + screenshots of every page (desktop, mobile, print)
 ```
 
 ## Deploy (GitHub Pages)
 
-Repo **Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: `main` / `(root)` → Save.** The site goes live at `https://draarivpatel-ui.github.io/Tutorloop/` in about a minute.
+Repo **Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: `main` / `(root)` → Save.** The site goes live in about a minute. This repo is served at `https://aariv.me/Tutorloop/` because the account's user site uses the custom domain `aariv.me`. Note that GitHub Pages paths are case-sensitive: `/Tutorloop/` works, `/tutorloop/` is a 404.
 
 ## Known limits (honest)
 
