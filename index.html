@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <title>TutorLoop: the back office for student tutors</title>
+  <meta name="description" content="TutorLoop helps student tutors track sessions, get paid, send parents progress updates, and log volunteer hours. Free, private, works offline.">
+  <meta name="theme-color" content="#4338ca">
+  <meta property="og:title" content="TutorLoop: the back office for student tutors">
+  <meta property="og:description" content="Log sessions in 10 seconds, see who owes you, send parent updates, and export NHS service hours. Free and private.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#app">Skip to content</a>
+  <header class="topbar no-print">
+    <a href="#dashboard" class="brand" aria-label="TutorLoop home"><span class="logo" aria-hidden="true"></span>TutorLoop</a>
+    <nav id="nav" aria-label="Main">
+      <a href="#dashboard">Dashboard</a>
+      <a href="#log">Log session</a>
+      <a href="#students">Students</a>
+      <a href="#reports">Parent updates</a>
+      <a href="#invoices">Invoices</a>
+      <a href="#hours">Service hours</a>
+      <a href="#settings">Settings &amp; plans</a>
+    </nav>
+  </header>
+
+  <div id="banner" class="banner no-print" role="alert" hidden></div>
+
+  <main id="app" tabindex="-1"><noscript><p class="card">TutorLoop needs JavaScript to run.</p></noscript></main>
+
+  <div id="toast" class="toast no-print" role="status" aria-live="polite"></div>
+
+  <footer class="foot no-print">
+    TutorLoop · Your data stays in this browser. Nothing is sent to a server. ·
+    <a href="https://github.com/draarivpatel-ui/Tutorloop" rel="noopener">Source on GitHub</a>
+  </footer>
+
+  <script src="js/core.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>
