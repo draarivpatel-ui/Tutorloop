@@ -141,6 +141,7 @@
             <h2>Run your tutoring like a real business</h2>
             <p>Log a session in about 10 seconds, see who still owes you, send parents a progress update in one click, and export volunteer hours for your NHS sponsor. Free, private, and it works offline.</p>
             <div class="actions"><button class="btn" data-act="demo">Try it with sample data</button><a class="btn ghost" href="#students">Start with my own students</a></div>
+            <p class="mt-s"><a href="#about">How it works, who it's for, and pricing</a></p>
           </section>
           <section class="card steps">
             <h2>Get set up in three steps</h2>
@@ -335,6 +336,69 @@
           ${vol.length ? sessionTable(vol, true) : '<p class="sub">No volunteer sessions yet. Tick "Volunteer session" when you log one.</p>'}
           <div class="print-only sign"><p>Sponsor signature: ______________________________ Date: ____________</p></div>
         </section>`;
+    },
+
+    about() {
+      // Founder pitch / landing page. Every number here is either a list price, a published fee,
+      // or arithmetic on those. There is no traction to report yet, and the page says so.
+      const fee = price => Math.round((price * 0.029 + 0.30 + price * 0.007) * 100) / 100;   // Stripe card 2.9% + 30c, Billing 0.7%
+      const row = (name, price, per) => { const f = fee(price); return `<tr><td data-label="Plan">${name}</td><td data-label="Price" class="num">${C.money(price)}${per}</td>
+        <td data-label="Card + billing fees" class="num">${C.money(f)}</td><td data-label="TutorLoop keeps" class="num"><span><b>${C.money(price - f)}</b> (${Math.round((price - f) / price * 100)}%)</span></td></tr>`; };
+      return `
+        <h1 tabindex="-1">Why TutorLoop</h1>
+        <p class="sub">The back office for student tutors: log it, get paid, keep parents in the loop, prove your hours.</p>
+        <section class="card hero">
+          <h2>Student tutors run real businesses with tools built for something else</h2>
+          <p>A notes app for sessions, a Venmo feed to guess who paid, a text thread with each parent, and a paper sheet for volunteer hours. TutorLoop puts those four jobs in one free app that works in the browser, with no account and no server.</p>
+          <div class="actions"><button class="btn" data-act="demo">Try it with sample data</button><a class="btn ghost" href="#students">Start with my own students</a></div>
+        </section>
+
+        <h2 class="mt-l">The problem</h2>
+        <div class="grid problems">
+          <div class="card"><h3>Money slips</h3><p class="sub">After a few weeks it's hard to remember which sessions were paid, and asking a parent for money feels awkward.</p></div>
+          <div class="card"><h3>Parents want updates</h3><p class="sub">Families paying for tutoring want to know what was covered and whether it's working. Writing that each week takes time.</p></div>
+          <div class="card"><h3>Hours need proof</h3><p class="sub">Volunteer tutoring often counts toward NHS or other service-hour requirements, which need a log a sponsor can sign.</p></div>
+        </div>
+
+        <h2 class="mt-l">How it works</h2>
+        <section class="card steps"><ol>
+          <li><a href="#log">Log a session</a><span class="sub-inline">student, minutes, topics, a quick note; about 10 seconds</span></li>
+          <li><a href="#invoices">Get paid</a><span class="sub-inline">see who owes you, print an invoice, send a polite reminder</span></li>
+          <li><a href="#reports">Update parents</a><span class="sub-inline">a progress note written from your own session notes, on your device</span></li>
+          <li><a href="#hours">Prove your hours</a><span class="sub-inline">volunteer sessions tracked toward a goal, exported as CSV or a signable log</span></li>
+        </ol></section>
+
+        <div class="grid two mt-l">
+          <section class="card"><h2>Who it's for</h2>
+            <ul><li><b>Students who tutor</b> privately or as volunteers, in high school or college.</li>
+              <li><b>NHS chapters and peer-tutoring clubs</b> whose sponsors collect service-hour logs (the Club plan).</li></ul></section>
+          <section class="card"><h2>Private by design</h2>
+            <p class="sub">Everything stays in this browser: no sign-up, no tracking, nothing sent to a server. That matters because tutors handle information about minors. Backups are a file you download.</p></section>
+        </div>
+
+        <h2 class="mt-l">Business model</h2>
+        <p class="sub">Freemium. The free plan is complete for a tutor with up to ${C.FREE_CLIENT_LIMIT} students. People pay when tutoring becomes a real side business, or when a club needs every tutor's hours in one place.</p>
+        <section class="card">
+          <table class="stack"><thead><tr><th scope="col">Plan</th><th scope="col" class="num">Price</th><th scope="col" class="num">Card + billing fees</th><th scope="col" class="num">TutorLoop keeps</th></tr></thead><tbody>
+            <tr><td data-label="Plan">Free</td><td data-label="Price" class="num">$0</td><td data-label="Card + billing fees" class="num">-</td><td data-label="TutorLoop keeps" class="num">-</td></tr>
+            ${row('Pro', 4, '/mo')}
+            ${row('Club', 99, '/school yr')}
+          </tbody></table>
+          <p class="sub mt-s">Fees use Stripe's published US rates: 2.9% + 30¢ per card payment plus 0.7% for subscription billing. The flat 30¢ hurts small monthly charges, so an annual Pro option is the obvious next pricing test.</p>
+          <p class="sub">Costs today: hosting is free (static files on GitHub Pages) and there is no server. Pro's sync and scheduled reminders are roadmap features; we won't charge for them until they exist.</p>
+          <div class="actions"><a class="btn ghost" href="#settings">See the plans</a></div>
+        </section>
+
+        <div class="grid two mt-l">
+          <section class="card"><h2>Where we are today</h2>
+            <ul><li>A working prototype, built in October 2026 for the Next Founders Hackathon.</li>
+              <li><b>No paying customers yet</b>, and no usage numbers to claim. Checkout in the app is a simulation.</li>
+              <li>Free features work today, offline after your first visit.</li></ul></section>
+          <section class="card"><h2>What's next</h2>
+            <ol><li>Put it in front of student tutors and ask what they'd pay for.</li>
+              <li>Pilot the Club plan with one NHS or peer-tutoring sponsor.</li>
+              <li>Build sync before turning on real Pro billing.</li></ol></section>
+        </div>`;
     },
 
     settings() {
@@ -561,6 +625,6 @@
 
   /* ---------- offline support ---------- */
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* offline mode unavailable */ }));
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => { /* offline mode unavailable */ }));
   }
 })();
