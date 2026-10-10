@@ -9,13 +9,13 @@ Checks real-browser behaviour that unit tests and jsdom can't: native form valid
 service worker / offline reload, layout overflow on a phone, accessibility (axe-core, if
 node_modules/axe-core is installed), keyboard focus, and that nothing logs a console error.
 """
-import json, os, pathlib, socket, subprocess, sys, time
+import json, os, pathlib, socket, subprocess, sys, tempfile, time
 from playwright.sync_api import sync_playwright
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SHOTS = os.environ.get('SHOTS')
 AXE_PATH = ROOT / 'node_modules' / 'axe-core' / 'axe.min.js'
-ROUTES = ['dashboard', 'log', 'students', 'reports', 'invoices', 'hours', 'settings']
+ROUTES = ['dashboard', 'log', 'students', 'reports', 'invoices', 'hours', 'settings', 'about']
 
 results, failures = [], []
 def check(name, cond, detail=''):
@@ -23,16 +23,23 @@ def check(name, cond, detail=''):
     print(('✓ ' if cond else '✗ ') + name + ('' if cond else f'  ->  {detail}'))
 
 s = socket.socket(); s.bind(('127.0.0.1', 0)); PORT = s.getsockname()[1]; s.close()
-srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '--bind', '127.0.0.1'], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+# Serve the app from a sub-path, exactly like production (https://aariv.me/Tutorloop/), on an origin
+# that also hosts other things. Bugs in service-worker scope, relative paths and cache cleanup only
+# show up this way, never when the app sits at the server root.
+SITE = pathlib.Path(tempfile.mkdtemp())
+(SITE / 'Tutorloop').symlink_to(ROOT, target_is_directory=True)
+(SITE / 'outside.txt').write_text('another site on the same origin')
+srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '--bind', '127.0.0.1'], cwd=SITE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(0.8)
-URL = f'http://127.0.0.1:{PORT}/'
+ORIGIN = f'http://127.0.0.1:{PORT}'
+URL = f'{ORIGIN}/Tutorloop/'
 
 def go(pg, route):
     pg.evaluate(f"location.hash = '{route}'"); pg.wait_for_timeout(150)
 
 try:
     with sync_playwright() as p:
-        b = p.chromium.launch()
+        b = p.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH') or None)
         ctx = b.new_context(viewport={'width': 1280, 'height': 900})
         pg = ctx.new_page()
         console = []
@@ -146,6 +153,38 @@ try:
         check('app reloads with no network (service worker)', pg.locator('#nav').count() == 1 and pg.locator('#app h1').count() == 1)
         ctx.set_offline(False)
         check('no console errors during the whole flow', not [c for c in console if 'net::ERR_INTERNET_DISCONNECTED' not in c], console)
+        ctx.close()
+
+        # service worker on a shared origin: stays in its lane
+        ctx = b.new_context(); pg = ctx.new_page()
+        sw_console = []
+        pg.on('console', lambda m: m.type == 'error' and sw_console.append(m.text))
+        pg.on('pageerror', lambda e: sw_console.append(str(e)))
+        pg.goto(ORIGIN + '/outside.txt')
+        pg.evaluate("caches.open('other-site').then(c => c.put('/outside.txt', new Response('x')))"); pg.wait_for_timeout(150)
+        pg.goto(URL); pg.evaluate("navigator.serviceWorker.ready"); pg.wait_for_timeout(1000)
+        reg = pg.evaluate("navigator.serviceWorker.getRegistration().then(r => r && r.scope)")
+        check('service worker scope is the app sub-path (/Tutorloop/)', reg == URL, reg)
+        keys = pg.evaluate("caches.keys()")
+        check("SW cleanup leaves other sites' caches on the same origin alone", 'other-site' in keys and any(k.startswith('tutorloop-') for k in keys), keys)
+        man = pg.evaluate("""async () => { const u = new URL(document.querySelector('link[rel=manifest]').getAttribute('href'), location.href);
+            const m = await (await fetch(u)).json(); const abs = x => new URL(x, u).href;
+            const icons = await Promise.all(m.icons.map(async i => (await fetch(abs(i.src))).status));
+            return { start: abs(m.start_url), scope: abs(m.scope), icons }; }""")
+        check('manifest start_url and scope resolve under the sub-path', man['start'].startswith(URL) and man['scope'] == URL, man)
+        check('every manifest icon loads', all(x == 200 for x in man['icons']), man['icons'])
+        pg.reload(); pg.wait_for_timeout(400)
+        pg.evaluate("fetch('/outside.txt')"); pg.wait_for_timeout(400)
+        leaked = pg.evaluate("caches.keys().then(async ks => { for (const k of ks) if (k.startsWith('tutorloop-') && await (await caches.open(k)).match('/outside.txt')) return true; return false; })")
+        check('SW does not cache URLs outside its scope', not leaked)
+        ctx.set_offline(True)
+        miss = pg.evaluate("fetch('js/missing.js').then(r => r.status + ' ' + (r.headers.get('content-type') || '')).catch(e => 'error')")
+        check('offline: a missing script is not answered with index.html', not miss.startswith('200') and 'text/html' not in miss, miss)
+        pg.goto(URL + '?utm_source=devpost#about'); pg.wait_for_timeout(500)
+        check('offline: a deep link with a query string opens the cached app', pg.locator('#app h1', has_text='Why TutorLoop').count() == 1)
+        ctx.set_offline(False)
+        # (the 504 for js/missing.js and the 404 for /favicon.ico on the plain-text page are provoked on purpose)
+        check('no console errors on the shared-origin SW checks', not [c for c in sw_console if not any(x in c for x in ('ERR_INTERNET_DISCONNECTED', '(Offline)', '(File not found)'))], sw_console)
         ctx.close()
 
         # layout + accessibility on every page, desktop and phone
