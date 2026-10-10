@@ -29,10 +29,14 @@ ok('empty state renders onboarding', text().includes('Get set up in three steps'
 d.querySelector('[data-act=demo]').click();
 ok('sample data loads into the dashboard', text().includes('Who owes you') && text().includes('$115.00'));
 
-for (const r of ['log', 'students', 'reports', 'invoices', 'hours', 'settings']) {
+for (const r of ['log', 'students', 'reports', 'invoices', 'hours', 'settings', 'about']) {
   go(r);
   ok('route #' + r + ' renders a heading', !!d.querySelector('#app h1'));
 }
+
+go('about');
+ok('pitch page is honest about traction', text().includes('No paying customers yet') && text().includes('Checkout in the app is a simulation'));
+ok('pitch page fee math matches published Stripe rates', text().includes('$0.44') && text().includes('$3.56') && text().includes('$95.14'));
 
 go('reports');
 ok('parent update auto-generates', d.getElementById('reportOut').value.startsWith('Hi Mrs. Chen,'));
