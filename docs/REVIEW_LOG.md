@@ -120,3 +120,33 @@ I ran a clean pass on all 7 pages at desktop, phone, and print sizes, from the e
 - No P0 or P1 issues found. Unit, jsdom, and e2e all pass (axe: 0 violations on all 7 pages; overflow: 0px at 1280 and 390; offline reload works; no console errors).
 
 **Known limits (accepted for the hackathon, documented in README):** single-browser storage (backup/restore instead of sync), simulated checkout, English-only rule-based text engine, and reminders open the user's own email app (nothing is sent automatically).
+
+---
+
+## Iteration 5 (Oct 10, 2026): live-domain test at https://aariv.me/Tutorloop/ + founder pitch page
+
+Tested the deployed site in headless Chromium. What already worked on the real domain: the service worker registers with scope `https://aariv.me/Tutorloop/` and controls the page; the manifest's `start_url` (`/Tutorloop/#dashboard`), `scope`, and all three icons resolve and return 200; offline reload works (including `#students`, `index.html`, and `?utm=…#log` deep links); no console errors; `/Tutorloop` redirects to `/Tutorloop/`.
+
+Problems that only show up on the real domain, because `aariv.me` is shared with Aariv's personal site (and any future projects at `aariv.me/<name>/`), and Cache Storage is per origin, not per path:
+
+| # | Sev | Area | Problem |
+|---|---|---|---|
+| 1 | P1 | SW cleanup | On activate, the worker deleted **every** cache on the origin except its own. Reproduced live: a cache created by the personal site at `aariv.me/` was wiped as soon as TutorLoop's worker activated. |
+| 2 | P2 | SW caching | Any same-origin GET made from a TutorLoop page was cached, including URLs outside `/Tutorloop/` (reproduced with `/favicon.svg`). |
+| 3 | P2 | SW offline | Offline, a missing script or stylesheet was answered with `index.html` (200, text/html) instead of failing. |
+| 4 | P3 | SEO/share | No canonical URL or `og:url`, so shares of the github.io address and the custom domain looked like two sites. |
+| 5 | P3 | Tests | e2e served the app at the server root, so none of the above could be caught locally. |
+
+### Fixed in iteration 5
+1. `sw.js` v3: only deletes caches whose name starts with `tutorloop-`.
+2. Only requests under the worker's own scope are handled or cached; everything else goes straight to the network.
+3. The offline `index.html` fallback is used for page navigations only; other misses return a 504.
+4. `index.html` declares `<link rel="canonical">` and `og:url` for `https://aariv.me/Tutorloop/`.
+5. e2e now serves the app from a `/Tutorloop/` sub-path on an origin with other content, and checks SW scope, manifest paths and icons, cache isolation (a foreign cache survives, out-of-scope URLs aren't cached), the offline script miss, and an offline deep link with a query string. These checks fail on the old `sw.js` (3 failures) and pass on the new one.
+
+Not fixable from this repo: `https://aariv.me/tutorloop/` (lowercase) is a 404 because GitHub Pages paths are case-sensitive. A redirect would have to live in the `aariv.me` user-site repo.
+
+### Founder pitch: new "Why TutorLoop" page (`#about`)
+A landing page linked from the nav and the empty-state dashboard: the problem, how it works (4 steps that link into the app), who it's for, privacy, and a **business-model table** (Free / Pro $4 per month / Club $99 per school year) with fees calculated from Stripe's published US rates (2.9% + 30¢ + 0.7% Billing), so TutorLoop keeps $3.56 of a Pro month and $95.14 of a Club year. It also has a "Where we are today" section that says plainly: working prototype, **no paying customers yet**, simulated checkout. Covered by jsdom (honesty copy + fee math) and e2e (axe, overflow at 1280 and 390).
+
+**Tests after iteration 5:** unit 33/33, jsdom 19/19, e2e 64/64.
