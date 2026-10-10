@@ -1,0 +1,18 @@
+{
+  "name": "tutorloop",
+  "version": "1.0.0",
+  "description": "The back office for student tutors: sessions, payments, parent updates, service hours.",
+  "private": true,
+  "scripts": {
+    "test": "node tests/core.test.js",
+    "test:dom": "node tests/smoke.dom.js",
+    "test:e2e": "python3 tests/e2e.py",
+    "test:all": "npm test && npm run test:dom && npm run test:e2e",
+    "start": "python3 -m http.server 8080"
+  },
+  "devDependencies": {
+    "axe-core": "^4.10.0",
+    "jsdom": "^24.0.0"
+  },
+  "license": "MIT"
+}
