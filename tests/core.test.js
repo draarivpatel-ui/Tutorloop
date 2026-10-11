@@ -396,5 +396,109 @@ test('proValue expresses the Pro price in minutes at the tutor\'s average paid r
   assert.deepStrictEqual(C.proValue(s, 4), { rate: 24, minutes: 10 });
 });
 
+/* part payments */
+function payState() {
+  const st = C.emptyState(); st.profile.name = 'Aariv'; st.profile.venmo = '@aariv'; st.profile.payMethod = 'Venmo';
+  st.clients.push({ id: 'c1', name: 'Maya Chen', rate: 25, parentName: 'Mrs. Chen' }, { id: 'c2', name: 'Ethan', rate: 30 });
+  // inserted out of date order on purpose: oldest-first must follow the date, not the array
+  st.sessions.push(
+    { id: 's2', clientId: 'c1', date: '2026-09-10', minutes: 60, topics: 'b', paid: false },
+    { id: 's1', clientId: 'c1', date: '2026-09-03', minutes: 60, topics: 'a', paid: false },
+    { id: 's3', clientId: 'c1', date: '2026-09-17', minutes: 60, topics: 'c', paid: false },
+    { id: 'v1', clientId: 'c1', date: '2026-09-01', minutes: 60, topics: 'v', volunteer: true },
+    { id: 'o1', clientId: 'c2', date: '2026-09-05', minutes: 60, topics: 'x', paid: false });
+  return st;
+}
+const bal = (st, id) => C.balances(st).find(b => b.client.id === id);
+test('partial payment settles the oldest session first and keeps the rest as a part payment', () => {
+  const st = payState();
+  const plan = C.planPayment(st, 'c1', 40);
+  assert.ok(plan.ok, plan.error);
+  assert.deepStrictEqual(plan.steps.map(x => [x.id, x.applied, x.settles]), [['s1', 25, true], ['s2', 15, false]]);
+  assert.strictEqual(plan.owedBefore, 75); assert.strictEqual(plan.owedAfter, 35); assert.strictEqual(plan.settled, 1);
+  C.applyPayment(st, 'c1', plan, '2026-10-11');
+  assert.strictEqual(st.sessions.find(s => s.id === 's1').paid, true);
+  assert.strictEqual(st.sessions.find(s => s.id === 's2').partPaid, 15);
+  assert.strictEqual(st.sessions.find(s => s.id === 's3').partPaid, undefined);
+  assert.strictEqual(bal(st, 'c1').owed, 35);
+  assert.strictEqual(bal(st, 'c2').owed, 30, 'other families untouched');
+  assert.deepStrictEqual(st.payments.map(p => [p.clientId, p.date, p.amount]), [['c1', '2026-10-11', 40]]);
+});
+test('part payments add up at cent precision and a final payment clears the balance exactly', () => {
+  const st = payState(); st.clients[0].rate = 33.33;   // 33.33 an hour, 3 sessions: $99.99
+  assert.strictEqual(bal(st, 'c1').owed, 99.99);
+  for (const amt of [0.01, 0.1, 10.89, 33.33]) { const p = C.planPayment(st, 'c1', amt); assert.ok(p.ok, p.error); C.applyPayment(st, 'c1', p, '2026-10-11'); }
+  const owed = bal(st, 'c1').owed;
+  assert.strictEqual(owed, 55.66);
+  assert.strictEqual(C.cents(99.99 - 0.01 - 0.1 - 10.89 - 33.33), owed);
+  const last = C.planPayment(st, 'c1', owed); assert.ok(last.ok, last.error); C.applyPayment(st, 'c1', last, '2026-10-12');
+  assert.strictEqual(bal(st, 'c1').owed, 0);
+  assert.ok(st.sessions.filter(s => s.clientId === 'c1' && !s.volunteer).every(s => s.paid && s.partPaid === undefined));
+  assert.strictEqual(C.cents(st.payments.reduce((a, p) => a + p.amount, 0)), 99.99);
+});
+test('payments are refused when empty, zero, negative, over the balance, or for nobody owing', () => {
+  const st = payState();
+  for (const bad of ['', null, 0, -5, 'abc', 0.001, NaN]) assert.strictEqual(C.planPayment(st, 'c1', bad).ok, false, String(bad));
+  const over = C.planPayment(st, 'c1', 75.01);
+  assert.strictEqual(over.ok, false); assert.ok(over.error.includes('$75.00'), over.error);
+  assert.strictEqual(C.planPayment(st, 'c1', 75).ok, true);
+  assert.strictEqual(C.planPayment(st, 'nope', 5).ok, false);
+  st.sessions.forEach(s => { if (s.clientId === 'c1') s.paid = true; });
+  assert.ok(C.planPayment(st, 'c1', 5).error.includes('Nothing is owed'));
+  assert.strictEqual(C.planPayment(payState(), 'c1', 100001).ok, false);
+});
+test('planPayment is pure; the dashboard totals, reminder, invoice and monthly statement all use the part-paid amount', () => {
+  const st = payState();
+  const before = JSON.stringify(st);
+  const plan = C.planPayment(st, 'c1', 40); assert.strictEqual(JSON.stringify(st), before);
+  C.applyPayment(st, 'c1', plan, '2026-10-11');
+  const s = C.stats(st, '2026-09');
+  assert.strictEqual(s.earned, 105); assert.strictEqual(s.unpaid, 65); assert.strictEqual(s.collected, 40); assert.strictEqual(s.unpaidAll, 65);
+  const msg = C.reminderMessage(st, 'c1');
+  assert.ok(msg.includes("balance of $35.00 for 2 sessions"), msg);
+  assert.ok(msg.includes('$10.00 left ($15.00 already paid of $25.00)'), msg);
+  assert.ok(!msg.includes('Sep 3'), 'the settled session is not listed');
+  const inv = C.invoice(st, 'c1', '2026-10-11');
+  assert.strictEqual(inv.total, 35); assert.deepStrictEqual(inv.items.map(i => [i.id, i.amount, i.full, i.partPaid]), [['s2', 10, 25, 15], ['s3', 25, 25, 0]]);
+  const m = C.monthSummary(st, '2026-09', 'c1');
+  assert.strictEqual(m.balanceAll, 35); assert.strictEqual(m.totals.billed, 75); assert.strictEqual(m.totals.paid, 40); assert.strictEqual(m.totals.unpaid, 35);
+  assert.ok(C.progressReport(st, 'c1', '2026-09-01', '2026-09-30').includes('$35.00'));
+});
+test('paid flag behavior is unchanged for old data, and editing a session down never makes a negative balance', () => {
+  const st = payState();
+  assert.strictEqual(C.sessionDue(st.sessions[0], st.clients[0]), 25);
+  st.sessions[0].paid = true; assert.strictEqual(C.sessionDue(st.sessions[0], st.clients[0]), 0);
+  const p = C.planPayment(st, 'c1', 10); C.applyPayment(st, 'c1', p, '2026-10-11');   // part-pays s1 (oldest unpaid)
+  const part = st.sessions.find(s => s.partPaid);
+  part.minutes = 12;   // now worth $5, less than the $10 already paid
+  assert.strictEqual(C.sessionDue(part, st.clients[0]), 0);
+  assert.ok(bal(st, 'c1').owed >= 0);
+  part.paid = true; assert.strictEqual(C.sessionDue(part, st.clients[0]), 0);
+});
+test('part payments and the payment log survive backup, undo, and bad data is dropped', () => {
+  const st = payState();
+  C.applyPayment(st, 'c1', C.planPayment(st, 'c1', 40), '2026-10-11');
+  const back = C.importState(JSON.stringify(st));
+  assert.strictEqual(back.sessions.find(s => s.id === 's2').partPaid, 15);
+  assert.strictEqual(back.sessions.find(s => s.id === 's1').partPaid, undefined);
+  assert.strictEqual(back.payments.length, 1); assert.strictEqual(back.payments[0].amount, 40);
+  assert.strictEqual(bal(back, 'c1').owed, 35);
+  const messy = JSON.parse(JSON.stringify(st));
+  messy.payments.push({ id: 'x', clientId: 'ghost', date: '2026-10-11', amount: 5 }, { id: 'y', clientId: 'c1', date: 'nope', amount: 5 }, { id: 'z', clientId: 'c1', date: '2026-10-11', amount: -3 }, null);
+  messy.sessions.find(s => s.id === 's3').partPaid = -4; messy.sessions.find(s => s.id === 'v1').partPaid = 9;
+  const clean = C.importState(JSON.stringify(messy));
+  assert.strictEqual(clean.payments.length, 1);
+  assert.strictEqual(clean.sessions.find(s => s.id === 's3').partPaid, undefined);
+  assert.strictEqual(clean.sessions.find(s => s.id === 'v1').partPaid, undefined);
+  assert.deepStrictEqual(C.importState(JSON.stringify({ clients: [], sessions: [] })).payments, [], 'an old backup has no payments');
+});
+test('CSV export carries the part-paid amount', () => {
+  const st = payState(); C.applyPayment(st, 'c1', C.planPayment(st, 'c1', 40), '2026-10-11');
+  const rows = C.sessionsCSV(st).split('\r\n');
+  assert.ok(rows[0].endsWith(',Part paid'));
+  assert.ok(rows.find(r => r.startsWith('2026-09-10')).endsWith(',15'), rows.join('|'));
+  assert.ok(rows.find(r => r.startsWith('2026-09-03')).endsWith(',0'));
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
