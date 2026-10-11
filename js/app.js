@@ -379,20 +379,30 @@
       const id = requested ? requested.id : (C.balances(state).find(b => b.owed > 0) || { client: state.clients[0] }).client.id;
       const inv = C.invoice(state, id, today());
       const p = state.profile;
+      const paysFor = cid => (state.payments || []).filter(x => x.clientId === cid).sort((a, b) => b.date.localeCompare(a.date));
       return `
         <div class="no-print"><h1 tabindex="-1">Invoices</h1><p class="sub">Unpaid sessions roll into one invoice. Print it or save it as a PDF.</p>
           ${params[0] && !requested ? '<p class="notice">That student was not found, so the invoice with the largest balance is shown.</p>' : ''}
           <div class="toolbar"><label for="invPick" class="sr-only">Student</label><select id="invPick">${state.clients.map(c => `<option value="${esc(c.id)}"${c.id === id ? ' selected' : ''}>${esc(c.name)}${c.archived ? ' (archived)' : ''}</option>`).join('')}</select>
           <button class="btn" data-act="print" ${inv.items.length ? '' : 'disabled'}>Print / Save PDF</button>
           ${inv.items.length ? `<a class="btn ghost" href="${esc(mailto(inv.client.parentEmail, 'Tutoring balance for ' + inv.client.name, C.reminderMessage(state, id)))}">Email reminder</a>
-            <button class="btn ghost" data-act="markPaidAll" data-id="${esc(id)}">Mark all paid</button>` : ''}</div></div>
+            <button class="btn ghost" data-act="markPaidAll" data-id="${esc(id)}">Mark all paid</button>` : ''}</div>
+          ${inv.items.length ? `<form id="payForm" class="card pay-form" data-id="${esc(id)}" novalidate aria-labelledby="payTitle">
+            <h2 id="payTitle" class="flush">Record a payment</h2>
+            <p class="sub">Got part of the money? Enter it and it covers the oldest sessions first. Sessions it fully covers turn paid; the rest is kept as a part payment.</p>
+            <div class="form-errors" tabindex="-1" role="alert"></div>
+            <div class="row pay-row"><div><label for="pay-amount">Amount received ($)</label><input id="pay-amount" name="amount" type="number" inputmode="decimal" step="0.01" min="0.01" max="${C.MAX_PAYMENT}" placeholder="e.g. 20.00" autocomplete="off"></div>
+            <div><button class="btn" type="submit">Record payment</button></div></div>
+            <p class="muted small">Balance now ${C.money(inv.total)}. Venmo, Zelle or cash: whatever they sent.</p></form>` : ''}
+          ${paysFor(id).length ? `<details class="pay-history no-print"><summary>Payments recorded for ${esc(inv.client.name)} (${paysFor(id).length})</summary>
+            <ul>${paysFor(id).map(x => `<li>${esc(C.fmtDate(x.date, true))}: <b>${C.money(x.amount)}</b></li>`).join('')}</ul></details>` : ''}</div>
         <article class="card invoice-doc" aria-label="Invoice preview">
           <div class="head"><div><h2 class="flush">${esc(p.business || p.name || 'Your tutoring business')}</h2><div class="muted">${esc(p.name && p.business ? p.name : '')}${p.email ? (p.name && p.business ? ' · ' : '') + esc(p.email) : ''}</div></div>
             <div class="right"><b>INVOICE</b><br>${esc(inv.number)}<br>${esc(C.fmtDate(today(), true))}</div></div>
           <p><b>Bill to:</b> ${esc(inv.client.parentName || 'Parent/guardian of ' + inv.client.name)}${inv.client.parentEmail ? ' · ' + esc(inv.client.parentEmail) : ''}<br>
             <b>Student:</b> ${esc(inv.client.name)}${inv.client.subject ? ' · ' + esc(inv.client.subject) : ''}</p>
           ${inv.items.length ? `<table><thead><tr><th scope="col">Date</th><th scope="col">Topics</th><th scope="col" class="num">Time</th><th scope="col" class="num">Amount</th></tr></thead><tbody>
-            ${inv.items.map(i => `<tr><td>${esc(C.fmtDate(i.date, true))}</td><td>${esc(i.topics)}</td><td class="num">${i.minutes} min</td><td class="num">${C.money(i.amount)}</td></tr>`).join('')}
+            ${inv.items.map(i => `<tr><td>${esc(C.fmtDate(i.date, true))}</td><td>${esc(i.topics)}</td><td class="num">${i.minutes} min</td><td class="num">${i.partPaid ? `${C.money(i.amount)}<div class="muted small">${C.money(i.partPaid)} of ${C.money(i.full)} already paid</div>` : C.money(i.amount)}</td></tr>`).join('')}
             </tbody><tfoot><tr><td colspan="3" class="num"><b>Total due</b></td><td class="num"><b>${C.money(inv.total)}</b></td></tr></tfoot></table>
             ${p.venmo ? `<p>Pay with: <b>${esc(C.paymentText(p))}</b></p>` : '<p class="muted no-print">Tip: add your Venmo or Zelle handle in <a href="#settings">Settings</a> so it prints here.</p>'}` : '<p class="sub">No unpaid sessions for this student. 🎉</p>'}
           <p class="muted">Thank you!</p>
@@ -617,7 +627,7 @@
     return `<table class="stack sessions${hoursMode ? ' hours' : ''}"><thead><tr><th scope="col">Date</th><th scope="col">Student</th><th scope="col">Topics</th><th scope="col" class="num">Min</th>${hoursMode ? '<th scope="col" class="num">Hours</th>' : '<th scope="col" class="num">Amount</th><th scope="col">Status</th>'}<th scope="col" class="no-print"><span class="sr-only">Actions</span></th></tr></thead><tbody>
       ${list.map(s => { const c = C.clientById(state, s.clientId) || {}; return `<tr><td data-label="Date">${esc(fd(s.date))}</td><td data-label="Student">${esc(c.name || 'Unknown')}</td><td data-label="Topics">${esc(s.topics) || '<span class="muted">-</span>'}</td>
         <td data-label="Minutes" class="num">${esc(s.minutes)}</td>
-        ${hoursMode ? `<td data-label="Hours" class="num">${C.cents(s.minutes / 60)}</td>` : `<td data-label="Amount" class="num">${s.volunteer ? '<span class="muted">-</span>' : C.money(C.sessionAmount(s, c))}</td>
+        ${hoursMode ? `<td data-label="Hours" class="num">${C.cents(s.minutes / 60)}</td>` : `<td data-label="Amount" class="num">${s.volunteer ? '<span class="muted">-</span>' : C.money(C.sessionAmount(s, c)) + (!s.paid && Number(s.partPaid) > 0 ? `<div class="muted small">${C.money(s.partPaid)} paid, ${C.money(C.sessionDue(s, c))} left</div>` : '')}</td>
         <td data-label="Status">${s.volunteer ? '<span class="pill vol">volunteer</span>' : s.paid ? `<button class="pill paid" data-act="togglePaid" data-id="${esc(s.id)}" aria-label="Paid. Mark unpaid">paid</button>` : `<button class="pill unpaid" data-act="togglePaid" data-id="${esc(s.id)}" aria-label="Unpaid. Mark paid">unpaid</button>`}</td>`}
         <td class="num row-actions no-print"><a class="btn small ghost" href="#log/${esc(s.id)}" aria-label="Edit session on ${esc(fd(s.date))} with ${esc(c.name || 'student')}">Edit</a></td></tr>`; }).join('')}</tbody></table>`;
   }
@@ -758,7 +768,15 @@
       const existing = f.dataset.id && state.sessions.find(s => s.id === f.dataset.id);
       const rec = { clientId: d.clientId, date: d.date, minutes: d.minutes, rate: d.rate, topics: d.topics, notes: d.notes, paid: !!d.paid, volunteer: !!d.volunteer };
       location.hash = 'dashboard';
-      commit(existing ? 'Session updated' : 'Session saved', () => { if (existing) Object.assign(existing, rec); else state.sessions.push(Object.assign({ id: C.uid('s') }, rec)); });
+      commit(existing ? 'Session updated' : 'Session saved', () => { if (existing) { Object.assign(existing, rec); if (rec.paid || rec.volunteer) delete existing.partPaid; } else state.sessions.push(Object.assign({ id: C.uid('s') }, rec)); });
+    }
+    if (f.id === 'payForm') {
+      const plan = C.planPayment(state, f.dataset.id, d.amount);
+      if (!plan.ok) return showErrors(f, [plan.error]);
+      const who = firstName((C.clientById(state, f.dataset.id) || {}).name);
+      commit(C.money(plan.amount) + ' recorded for ' + who + (plan.owedAfter > 0 ? '. ' + C.money(plan.owedAfter) + ' still owed.' : '. All paid up.'), () => { C.applyPayment(state, f.dataset.id, plan, today()); });
+      const field = document.getElementById('pay-amount'); if (field) field.focus();
+      return;
     }
     if (f.id === 'clientForm') {
       const existing = f.dataset.id && C.clientById(state, f.dataset.id);
