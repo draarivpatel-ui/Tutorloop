@@ -215,6 +215,26 @@ try:
         check('no console errors on the shared-origin SW checks', not [c for c in sw_console if not any(x in c for x in ('ERR_INTERNET_DISCONNECTED', '(Offline)', '(File not found)'))], sw_console)
         ctx.close()
 
+        # scale: 50 students and 5,000 sessions (about 0.9 MB) still render fast, amounts get thousands separators, and email links stay short
+        big_json = subprocess.check_output(['node', '-e', """
+const C=require(process.argv[1]);const s=C.demoState('2026-10-10');const base=s.clients[0];
+for(let i=0;i<46;i++)s.clients.push(Object.assign({},base,{id:'c'+i,name:'Student '+i,archived:false,rate:40}));
+const ids=s.clients.map(c=>c.id);
+for(let i=0;i<5000;i++){const d=new Date(Date.UTC(2026,9,10)-i*86400000*0.4);s.sessions.push({id:'s'+i,clientId:ids[i%ids.length],date:d.toISOString().slice(0,10),minutes:30+(i%4)*15,rate:null,topics:'topic '+i+', fractions',notes:'went well',paid:i%3==0,volunteer:i%7==0});}
+console.log(JSON.stringify(s));""", str(ROOT / 'js' / 'core.js')]).decode()
+        ctx = b.new_context(viewport={'width': 1280, 'height': 900}); pg = ctx.new_page()
+        big_errs = []
+        pg.on('pageerror', lambda e: big_errs.append(str(e)))
+        pg.goto(URL); pg.evaluate("d => localStorage.setItem('tutorloop.v1', d)", big_json); pg.reload(); pg.wait_for_timeout(500)
+        t_dash = pg.evaluate("() => { const t = performance.now(); location.hash = 'summary'; window.dispatchEvent(new HashChangeEvent('hashchange')); location.hash = 'dashboard'; window.dispatchEvent(new HashChangeEvent('hashchange')); return performance.now() - t; }")
+        check(f'scale: dashboard re-renders in under 1.5 s with 5,000 sessions and 50 students ({t_dash:.0f} ms)', t_dash < 1500, t_dash)
+        kpis = pg.inner_text('.kpis')
+        check('scale: big amounts use thousands separators', ',' in kpis and '$' in kpis, kpis[:200])
+        longest = pg.evaluate("Math.max(...[...document.querySelectorAll('a[href^=\"mailto:\"]')].map(a => a.href.length))")
+        check('scale: every Remind email link stays under 8,200 characters', 0 < longest < 8200, longest)
+        check('scale: no page errors', not big_errs, big_errs)
+        ctx.close()
+
         # first run: quick start gets a tutor from an empty app to a drafted parent update; toasts go away
         axe_src = AXE_PATH.read_text() if AXE_PATH.exists() else None
         ctx = b.new_context(viewport={'width': 1280, 'height': 900}, bypass_csp=True); pg = ctx.new_page()
