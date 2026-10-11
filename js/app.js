@@ -106,6 +106,12 @@
     return 'mailto:' + encodeURIComponent(to || '') + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
   }
 
+  /** Settings preview of the exact payment sentence parents will see. Plain text (used via textContent too). */
+  function payPreviewText(p) {
+    const s = C.paymentSentence(p);
+    return s ? 'Parents will see: "' + s + '"' : 'Add a handle and it will appear on invoices, reminders, and parent updates.';
+  }
+
   function formData(form) {
     const o = {};
     new FormData(form).forEach((v, k) => { o[k] = typeof v === 'string' ? v.trim() : v; });
@@ -314,8 +320,9 @@
           ${inv.items.length ? `<table><thead><tr><th scope="col">Date</th><th scope="col">Topics</th><th scope="col" class="num">Time</th><th scope="col" class="num">Amount</th></tr></thead><tbody>
             ${inv.items.map(i => `<tr><td>${esc(C.fmtDate(i.date, true))}</td><td>${esc(i.topics)}</td><td class="num">${i.minutes} min</td><td class="num">${C.money(i.amount)}</td></tr>`).join('')}
             </tbody><tfoot><tr><td colspan="3" class="num"><b>Total due</b></td><td class="num"><b>${C.money(inv.total)}</b></td></tr></tfoot></table>
-            ${p.venmo ? `<p>Pay by: <b>${esc(p.venmo)}</b></p>` : '<p class="muted no-print">Tip: add your Venmo or Zelle handle in <a href="#settings">Settings</a> so it prints here.</p>'}` : '<p class="sub">No unpaid sessions for this student. 🎉</p>'}
+            ${p.venmo ? `<p>Pay with: <b>${esc(C.paymentText(p))}</b></p>` : '<p class="muted no-print">Tip: add your Venmo or Zelle handle in <a href="#settings">Settings</a> so it prints here.</p>'}` : '<p class="sub">No unpaid sessions for this student. 🎉</p>'}
           <p class="muted">Thank you!</p>
+          ${p.referralFooter ? `<p class="muted referral">Sent with TutorLoop, a free app for student tutors: <a href="${esc(C.APP_URL)}">${esc(C.APP_URL.replace(/^https:\/\//, ''))}</a></p>` : ''}
         </article>`;
     },
 
@@ -339,6 +346,10 @@
     },
 
     about() {
+      // Competitor list prices, copied from the vendors' own pricing pages (monthly billing, USD) on CMP.checked.
+      const CMP = { checked: 'Oct 10, 2026', lessons: 8,
+        tutorbird: { base: 16.95, perTutor: 4.95 },      // https://www.tutorbird.com/pricing/
+        teachworks: { base: 16.49, perLesson: 0.32 } };  // https://teachworks.com/pricing (Starter: $16.49/mo + $0.320 per student lesson)
       // Founder pitch / landing page. Every number here is either a list price, a published fee,
       // or arithmetic on those. There is no traction to report yet, and the page says so.
       const fee = price => Math.round((price * 0.029 + 0.30 + price * 0.007) * 100) / 100;   // Stripe card 2.9% + 30c, Billing 0.7%
@@ -389,6 +400,19 @@
           <div class="actions"><a class="btn ghost" href="#settings">See the plans</a></div>
         </section>
 
+        <h2 class="mt-l" id="compare">How it compares</h2>
+        <p class="sub">Tutoring software exists, but it is priced for tutoring businesses. Here is what a student with a few families would pay, using each company's own published monthly price.</p>
+        <section class="card">
+          <table class="stack compare"><thead><tr><th scope="col">Tool</th><th scope="col">List price (monthly billing)</th><th scope="col" class="num">Example month*</th></tr></thead><tbody>
+            <tr><td data-label="Tool"><b>TutorLoop Free</b></td><td data-label="List price">$0, up to ${C.FREE_CLIENT_LIMIT} active students</td><td data-label="Example month*" class="num"><b>$0.00</b></td></tr>
+            <tr><td data-label="Tool">TutorBird</td><td data-label="List price">${C.money(CMP.tutorbird.base)}/mo + ${C.money(CMP.tutorbird.perTutor)} per additional tutor or staff member</td><td data-label="Example month*" class="num">${C.money(CMP.tutorbird.base)}</td></tr>
+            <tr><td data-label="Tool">Teachworks Starter</td><td data-label="List price">${C.money(CMP.teachworks.base)}/mo + ${C.money(CMP.teachworks.perLesson)} per student lesson</td><td data-label="Example month*" class="num">${C.money(C.cents(CMP.teachworks.base + CMP.teachworks.perLesson * CMP.lessons))}</td></tr>
+          </tbody></table>
+          <p class="sub mt-s">*One tutor teaching ${CMP.lessons} one-on-one lessons a month (two students, once a week each). Teachworks: ${C.money(CMP.teachworks.base)} + ${CMP.lessons} × ${C.money(CMP.teachworks.perLesson)}. Both offer free trials (TutorBird 30 days, Teachworks 21 days).</p>
+          <p class="sub"><b>To be fair:</b> both are full business platforms that do far more than TutorLoop, including lesson scheduling and billing, and TutorBird adds online payments and a student portal. TutorLoop does not take payments or schedule lessons. It's for a high schooler with a few students who wants the money, parent updates, and service hours sorted for free.</p>
+          <p class="sub">Sources, checked ${CMP.checked}: <a href="https://www.tutorbird.com/pricing/" target="_blank" rel="noopener">TutorBird pricing</a> · <a href="https://teachworks.com/pricing" target="_blank" rel="noopener">Teachworks pricing</a>. Prices can change; see their pages for current terms.</p>
+        </section>
+
         <div class="grid two mt-l">
           <section class="card"><h2>Where we are today</h2>
             <ul><li>A working prototype, built in October 2026 for the Next Founders Hackathon.</li>
@@ -411,8 +435,13 @@
           <form class="card" id="profileForm" novalidate><h2>Your profile</h2>
             <div class="form-errors" tabindex="-1" role="alert"></div>
             <div class="row"><div><label for="p-name">Your name</label><input id="p-name" name="name" maxlength="80" autocomplete="name" value="${esc(p.name)}"></div><div><label for="p-business">Business name</label><input id="p-business" name="business" maxlength="100" value="${esc(p.business)}"></div></div>
-            <div class="row"><div><label for="p-email">Email on invoices</label><input id="p-email" name="email" type="email" maxlength="120" autocomplete="email" value="${esc(p.email)}"></div><div><label for="p-venmo">Venmo / Zelle handle</label><input id="p-venmo" name="venmo" maxlength="80" value="${esc(p.venmo)}"></div></div>
-            <div class="row"><div><label for="p-goal">Service-hour goal <span class="opt">(optional)</span></label><input id="p-goal" name="serviceGoal" type="number" inputmode="decimal" min="0" max="1000" step="0.5" placeholder="e.g. 10" value="${esc(p.serviceGoal)}"></div><div></div></div>
+            <div class="row"><div><label for="p-email">Email on invoices</label><input id="p-email" name="email" type="email" maxlength="120" autocomplete="email" value="${esc(p.email)}"></div><div><label for="p-goal">Service-hour goal <span class="opt">(optional)</span></label><input id="p-goal" name="serviceGoal" type="number" inputmode="decimal" min="0" max="1000" step="0.5" placeholder="e.g. 10" value="${esc(p.serviceGoal)}"></div></div>
+            <div class="row"><div><label for="p-venmo">Payment handle</label><input id="p-venmo" name="venmo" maxlength="80" placeholder="@your-handle" aria-describedby="payPreview" value="${esc(p.venmo)}"></div>
+              <div><label for="p-paymethod">Payment app <span class="opt">(optional)</span></label><input id="p-paymethod" name="payMethod" maxlength="30" list="payMethods" placeholder="Venmo, Zelle, PayPal…" aria-describedby="payPreview" value="${esc(p.payMethod || '')}">
+                <datalist id="payMethods">${C.PAY_METHODS.map(m => `<option value="${esc(m)}"></option>`).join('')}</datalist></div></div>
+            <p class="sub" id="payPreview" aria-live="polite">${esc(payPreviewText(p))}</p>
+            <label class="check"><input type="checkbox" name="referralFooter" id="p-referral" aria-describedby="referralHelp" ${p.referralFooter ? 'checked' : ''}> Add a "Sent with TutorLoop" line to parent messages and invoices</label>
+            <p class="sub" id="referralHelp">Off by default. It's one plain line with a link to TutorLoop. There's no tracking or referral code, and TutorLoop can't see who clicks it.</p>
             <div class="actions"><button class="btn" type="submit">Save profile</button></div></form>
           <section class="card"><h2>Your data</h2><p class="sub">Everything is stored only in this browser${storageOk ? '' : ' (saving is currently blocked)'}. Back it up, or move it to another device.</p>
             <div class="actions"><button class="btn ghost" data-act="exportJson">Download backup (JSON)</button>
@@ -525,6 +554,10 @@
   /* ---------- events ---------- */
   document.addEventListener('input', e => {
     if (e.target.closest('#sessionForm')) updatePreview();
+    if (e.target.id === 'p-venmo' || e.target.id === 'p-paymethod') {
+      const out = document.getElementById('payPreview');
+      if (out) out.textContent = payPreviewText({ venmo: document.getElementById('p-venmo').value, payMethod: document.getElementById('p-paymethod').value });
+    }
     if (e.target.id === 'reportOut') { updateMailLink(); autosize(e.target); }
     if (e.target.id === 'r-from' || e.target.id === 'r-to') { const p = document.getElementById('r-preset'); if (p) p.value = 'custom'; }
   });
@@ -578,7 +611,7 @@
       if (d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) errs.push('Email looks invalid.');
       if (d.serviceGoal !== '' && (isNaN(Number(d.serviceGoal)) || Number(d.serviceGoal) < 0 || Number(d.serviceGoal) > 1000)) errs.push('Service-hour goal must be between 0 and 1,000.');
       if (errs.length) return showErrors(f, errs);
-      commit('Profile saved', () => { Object.assign(state.profile, { name: d.name, business: d.business, email: d.email, venmo: d.venmo, serviceGoal: Number(d.serviceGoal) > 0 ? Number(d.serviceGoal) : '' }); });
+      commit('Profile saved', () => { Object.assign(state.profile, { name: d.name, business: d.business, email: d.email, venmo: d.venmo, payMethod: d.payMethod, referralFooter: !!d.referralFooter, serviceGoal: Number(d.serviceGoal) > 0 ? Number(d.serviceGoal) : '' }); });
     }
     if (f.id === 'reportForm') { generateReport(); toast('Update generated'); }
   });
