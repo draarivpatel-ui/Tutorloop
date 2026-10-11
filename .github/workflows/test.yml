@@ -14,3 +14,5 @@ jobs:
         with: { python-version: '3.12' }
       - run: pip install playwright && python -m playwright install --with-deps chromium
       - run: python tests/e2e.py   # real-browser e2e, offline, axe, mobile layout
+      - run: sudo apt-get install -y poppler-utils   # pdfinfo/pdftotext for the print check
+      - run: python tests/print_test.py   # every printable page as a Letter PDF: page count, no app chrome, totals
