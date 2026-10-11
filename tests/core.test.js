@@ -547,5 +547,29 @@ test('backup import drops bad payments and rejects a newer-version file', () => 
   assert.throws(() => C.importState(JSON.stringify({ version: 999, clients: [], sessions: [] })), /newer version/);
 });
 
+test('session dates: future (typo years) and pre-2000 dates are refused when today is known; tomorrow is allowed', () => {
+  const ok = { clientId: 'c', minutes: 60 };
+  assert.deepStrictEqual(C.validateSession(Object.assign({ date: '2026-10-11' }, ok), '2026-10-11'), []);
+  assert.deepStrictEqual(C.validateSession(Object.assign({ date: '2026-10-12' }, ok), '2026-10-11'), [], 'one day of slack for time zones');
+  assert.ok(C.validateSession(Object.assign({ date: '2026-10-13' }, ok), '2026-10-11').some(e => /future/.test(e)));
+  assert.ok(C.validateSession(Object.assign({ date: '2062-10-11' }, ok), '2026-10-11').some(e => /Check the year/.test(e)));
+  assert.ok(C.validateSession(Object.assign({ date: '1999-10-11' }, ok), '2026-10-11').some(e => /2000/.test(e)));
+  assert.strictEqual(C.validateSession(Object.assign({ date: '0026-10-11' }, ok), '2026-10-11').length, 1, 'a 2-digit-year typo is refused');
+  assert.strictEqual(C.validateSession(Object.assign({ date: '2026-12-31' }, ok), '2026-12-31').length, 0, 'year boundary');
+  assert.strictEqual(C.validateSession(Object.assign({ date: '2027-01-01' }, ok), '2026-12-31').length, 0, 'tomorrow across New Year');
+  assert.deepStrictEqual(C.validateSession(Object.assign({ date: '2062-10-11' }, ok)), [], 'without today (imports, old callers) only the format is checked');
+});
+test('duplicate student names are refused (case and spacing ignored); editing a student keeps its own name', () => {
+  const s = demo(); s.profile.plan = 'pro';
+  const maya = s.clients.find(c => /Maya/.test(c.name));
+  assert.ok(C.validateClient({ name: '  ' + maya.name.toUpperCase().replace(' ', '   ') + ' ', rate: 20 }, s).some(e => /already have a student named/.test(e)));
+  assert.deepStrictEqual(C.validateClient({ id: maya.id, name: maya.name, rate: 30 }, s), [], 'saving an edit of the same student');
+  const other = s.clients.find(c => c.id !== maya.id);
+  assert.ok(C.validateClient({ id: other.id, name: maya.name, rate: 30 }, s).some(e => /already have a student/.test(e)), 'renaming onto another student');
+  maya.archived = true;
+  assert.ok(C.validateClient({ name: maya.name, rate: 20 }, s).some(e => /archived student/.test(e) && /Restore/.test(e)));
+  assert.deepStrictEqual(C.validateClient({ name: maya.name + ' R.', rate: 20 }, s), []);
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

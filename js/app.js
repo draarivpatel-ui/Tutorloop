@@ -307,7 +307,7 @@
           <div class="form-errors" tabindex="-1" role="alert"></div>
           <div class="row">
             <div class="wide-m"><label for="f-client">Student</label><select id="f-client" name="clientId">${clientOptions(s.clientId, s.clientId)}</select></div>
-            <div><label for="f-date">Date</label><input id="f-date" name="date" type="date" value="${esc(s.date)}" required></div>
+            <div><label for="f-date">Date</label><input id="f-date" name="date" type="date" value="${esc(s.date)}" min="2000-01-01" max="${C.addDays(today(), 1)}" required></div>
             <div><label for="f-minutes">Minutes</label><input id="f-minutes" name="minutes" type="number" inputmode="numeric" min="1" max="${C.MAX_MINUTES}" step="1" value="${esc(s.minutes)}" required>
               <div class="chips" role="group" aria-label="Quick durations">${[30, 45, 60, 90].map(chip).join('')}</div></div>
             <div><label for="f-rate">Rate override ($/hr)</label><input id="f-rate" name="rate" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Student's rate" value="${esc(s.rate == null ? '' : s.rate)}"></div>
@@ -792,7 +792,7 @@
     if (f.id === 'sessionForm') {
       d.minutes = d.minutes === '' ? NaN : Number(d.minutes); d.rate = d.rate === '' ? null : Number(d.rate);
       if (d.volunteer) d.paid = false;
-      const errs = C.validateSession(d); if (errs.length) return showErrors(f, errs);
+      const errs = C.validateSession(d, today()); if (errs.length) return showErrors(f, errs);
       const existing = f.dataset.id && state.sessions.find(s => s.id === f.dataset.id);
       const rec = { clientId: d.clientId, date: d.date, minutes: d.minutes, rate: d.rate, topics: d.topics, notes: d.notes, paid: !!d.paid, volunteer: !!d.volunteer };
       location.hash = 'dashboard';
@@ -819,7 +819,7 @@
       const client = { name: d.name, subject: '', grade: '', rate: d.rate === '' ? 0 : Number(d.rate), parentName: '', parentEmail: '', volunteerDefault: !!d.volunteer };
       const errs = C.validateClient(client, state);
       const sess = { clientId: 'pending', date: today(), minutes: Number(d.minutes), rate: null, topics: d.topics, notes: d.notes, paid: false, volunteer: !!d.volunteer };
-      C.validateSession(sess).forEach(e => { if (!errs.includes(e)) errs.push(e); });
+      C.validateSession(sess, today()).forEach(e => { if (!errs.includes(e)) errs.push(e); });
       if (errs.length) return showErrors(f, errs);
       commit('First session saved', () => {
         const id = C.uid('c');

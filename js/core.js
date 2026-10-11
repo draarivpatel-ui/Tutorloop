@@ -8,6 +8,7 @@
   const SCHEMA_VERSION = 1;
   const FREE_CLIENT_LIMIT = 3;
   const MAX_MINUTES = 600;
+  const MIN_DATE = '2000-01-01';
 
   function uid(prefix) {
     return (prefix || 'id') + '_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
@@ -109,16 +110,26 @@
     if (String(c.name || '').length > 80) errors.push('Student name must be 80 characters or fewer.');
     if (c.rate === '' || c.rate == null || isNaN(Number(c.rate)) || Number(c.rate) < 0 || Number(c.rate) > 1000) errors.push('Hourly rate must be between $0 and $1,000.');
     if (c.parentEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.parentEmail)) errors.push('Parent email looks invalid.');
+    // Two students with the same name make the invoice picker, reminders and statements ambiguous.
+    const norm = v => String(v || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const dup = state && norm(c.name) && state.clients.find(x => x.id !== c.id && norm(x.name) === norm(c.name));
+    if (dup) errors.push(dup.archived
+      ? 'You already have an archived student named ' + String(dup.name).trim() + '. Restore them from Students instead of adding them again.'
+      : 'You already have a student named ' + String(dup.name).trim() + '. Add a last initial so invoices and reminders don\'t mix them up.');
     if (state && !c.id && state.profile.plan === 'free' && state.clients.filter(x => !x.archived).length >= FREE_CLIENT_LIMIT) {
       errors.push('The Free plan includes ' + FREE_CLIENT_LIMIT + ' active students. Archive a student or switch to Pro for unlimited.');
     }
     return errors;
   }
 
-  function validateSession(s) {
+  /** today (YYYY-MM-DD, the tutor's local date) is optional; when given, dates after tomorrow are refused
+   *  (a typo like 2062 would otherwise sit in every balance and reminder). One day of slack covers time zones. */
+  function validateSession(s, today) {
     const errors = [];
     if (!s.clientId) errors.push('Pick a student.');
     if (!isValidDate(s.date)) errors.push('Enter a valid date.');
+    else if (s.date < MIN_DATE) errors.push('Enter a date from the year 2000 on (check the year).');
+    else if (isValidDate(today) && s.date > addDays(today, 1)) errors.push('That date is in the future. Check the year: log a session after it happens.');
     const m = Number(s.minutes);
     if (!Number.isFinite(m) || m <= 0 || m > MAX_MINUTES) errors.push('Duration must be between 1 and ' + MAX_MINUTES + ' minutes.');
     if (s.rate != null && s.rate !== '' && (isNaN(Number(s.rate)) || Number(s.rate) < 0 || Number(s.rate) > 1000)) errors.push('Rate override must be between $0 and $1,000.');

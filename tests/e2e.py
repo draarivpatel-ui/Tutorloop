@@ -76,6 +76,17 @@ try:
         # invalid input shows an accessible error
         go(pg, 'log'); pg.fill('#f-minutes', ''); pg.click('#sessionForm button[type=submit]'); pg.wait_for_timeout(100)
         check('empty minutes shows an inline error', 'Duration must be' in pg.inner_text('.form-errors'))
+        # a typo year (2062) must not land in every balance and reminder; the date picker also stops at tomorrow
+        go(pg, 'log'); pg.fill('#f-date', '2062-10-11'); pg.click('#sessionForm button[type=submit]'); pg.wait_for_timeout(150)
+        n_sess = pg.evaluate("JSON.parse(localStorage.getItem('tutorloop.v1')).sessions.length")
+        check('future-dated session (2062) is refused with a "check the year" error, nothing saved',
+              'Check the year' in pg.inner_text('.form-errors') and n_sess == 2 and pg.get_attribute('#f-date', 'max') is not None, pg.inner_text('#app')[:300])
+        # a second student with the same name (other case/spaces) is refused
+        go(pg, 'students')
+        pg.fill('#c-name', '  TEST <IMG SRC=X ONERROR=ALERT(1)> '); pg.fill('#c-rate', '20')
+        pg.click('#clientForm button[type=submit]'); pg.wait_for_timeout(200)
+        check('duplicate student name is refused with a clear error',
+              'already have a student named' in pg.inner_text('.form-errors') and pg.evaluate("JSON.parse(localStorage.getItem('tutorloop.v1')).clients.length") == 1, pg.inner_text('#app')[:300])
 
         # undo
         go(pg, 'dashboard'); pg.click('[data-act=markPaidAll]'); pg.wait_for_timeout(150)
