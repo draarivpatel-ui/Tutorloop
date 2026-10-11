@@ -221,3 +221,12 @@ canvas { display: block; width: 100%; height: 220px; }
   .summary-doc .kpi { background: none; border: 1px solid #ddd; padding: 8px; }
   .summary-doc .kpis { grid-template-columns: repeat(4, 1fr); }
 }
+
+/* record a payment (invoices page) */
+.pay-form { margin: 0 0 16px; }
+.pay-form .pay-row { grid-template-columns: minmax(160px, 260px) auto; align-items: end; margin-bottom: 6px; }
+.pay-form .pay-row .btn { min-height: 44px; }
+.pay-history { margin: 0 0 16px; }
+.pay-history summary { cursor: pointer; padding: 6px 0; }
+.pay-history ul { margin: 4px 0 0; padding-left: 20px; }
+@media (max-width: 640px) { .pay-form .pay-row { grid-template-columns: 1fr; } .pay-form .pay-row .btn { width: 100%; } }
