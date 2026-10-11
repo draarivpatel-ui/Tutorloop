@@ -25,14 +25,15 @@ One free web app that does the four jobs in one loop: **Log → Get paid → Upd
 - **Get paid:** a "Who owes you" list, one-click itemised payment reminders that open in your email app, printable invoices.
 - **Update parents:** an on-device engine turns your own session notes into an editable progress update (topics, recency-weighted trend, latest highlight, next focus, balance).
 - **Prove hours:** volunteer sessions tracked toward a goal, exported as CSV or a printable log with a sponsor signature line.
-- **Private by design:** no account, no server; data stays in the browser. That matters because tutors handle information about minors. Undo on every action, JSON backup/restore, works offline after the first visit, installable on a phone.
+- **Private by design:** no account, no server; data stays in the browser. That matters because tutors handle information about minors. Undo on every action, JSON backup/restore, a "You're exploring sample data" bar with a one-click "Start fresh with my own students" (undoable), works offline after the first visit, installable on a phone.
 
 **What makes it different:** it's built for the student tutor specifically (service hours plus parent comms plus payments in one place), it's free for the core job, and it costs almost nothing to serve because it has no backend.
 
 ## 3. Market
 - **Top-down:** the US private tutoring market was about **$13.5B in 2024**, projected to reach **$27.0B by 2034** (7.5% CAGR) per Emergen Research (https://www.emergenresearch.com/industry-report/us-private-tutoring-market). TutorLoop doesn't take a cut of tutoring revenue, so this is context for how much activity exists, not our revenue pool.
 - **Channel we can reach:** the National Honor Society has **17,000+ chapters and about 1.4 million active members** (https://en.wikipedia.org/wiki/National_Honor_Society, citing NHS/NASSP). Every chapter has a faculty sponsor who has to collect service-hour records.
-- **Bottom-up ceiling (illustrative, not a forecast):** 17,000 NHS chapters × $99/year Club plan ≈ **$1.7M/year** if every chapter paid. A realistic early goal is a few chapters in Fort Bend ISD. Pro revenue from individual paid tutors would come on top; we don't have a reliable count of student tutors, so we don't size it.
+- **Bottom-up ceiling (illustrative, not a forecast):** 17,000 NHS chapters × $99/year Club plan ≈ **$1.7M/year** at list price, or about **$1.6M/year** after Stripe fees (17,000 × $95.14 kept, the figure the app shows), if every chapter paid. A realistic early goal is a few chapters in Fort Bend ISD. Pro revenue from individual paid tutors would come on top; we don't have a reliable count of student tutors, so we don't size it.
+- **In the product:** the Why TutorLoop page (https://aariv.me/Tutorloop/#about) has a **"Who pays, and how we reach them"** section that makes this case on screen: the first payer we can reach is the NHS adviser who collects every tutor's hours; the average chapter contributes about 1,000 service hours a year; one Club plan covers up to 50 tutors, so one adviser's yes brings a whole chapter; costs today are $0 a month; and the first real cost (a Pro sync server) is only built once paying users ask for it. Sources on the page: NHS About page and Wikipedia, checked Oct 11, 2026.
 - **Beachhead:** high school students in the Houston area who tutor 1–10 kids, starting with NHS and math-club members at Aariv's own school.
 
 ## 4. Business model
@@ -55,6 +56,7 @@ Freemium, with a B2B2C channel through school clubs.
 **Path to sustainability:** near-zero fixed cost means a handful of Club chapters covers hosting, a sync database, and email many times over. Growth comes through sponsors (one sponsor = 20–50 tutors) rather than paid ads.
 
 ## 5. Go-to-market
+The same four steps appear in order on the app's Why TutorLoop page under "Who pays, and how we reach them".
 1. **Seed:** NHS and math-club members at Math and Science Academy and nearby Fort Bend ISD schools; demo at a chapter meeting.
 2. **Sponsor wedge:** offer one NHS sponsor a free semester of Club in exchange for feedback. The sponsor's pain (collecting and verifying hours) is what drives a chapter-wide rollout.
 3. **Built-in referral (built, opt-in):** a "Sent with TutorLoop" line the tutor can switch on in Settings. It ends parent updates, payment reminders, and invoices with a plain link, so every parent who receives one can find the product. It's off by default and has no tracking or referral code, so we can't measure it yet; measuring would mean adding a privacy-respecting referral count later.
@@ -63,7 +65,7 @@ Freemium, with a B2B2C channel through school clubs.
 ## 6. Traction (stated honestly)
 **None yet.** No users, no paying customers, no pilots, no waitlist, no usage numbers. What exists:
 - A working, publicly deployed product at https://aariv.me/Tutorloop/.
-- 50 unit tests, 30 DOM checks, and 96 real-browser end-to-end checks, all passing on Oct 10, 2026 (re-run before quoting).
+- 58 unit tests, 38 DOM checks, and 112 headless-Chromium end-to-end checks, all passing on Oct 11, 2026 (~1:15 PM ET; re-run before quoting).
 - An in-app pitch page that states the same thing: "No paying customers yet, and no usage numbers to claim."
 
 ## 7. Technology (why it can scale cheaply)
