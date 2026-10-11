@@ -12,6 +12,13 @@ Built by Aariv Patel for the [Next Founders Hackathon](https://next-founders.dev
 
 ---
 
+## Judge it in 60 seconds
+
+1. Open https://aariv.me/Tutorloop/ and click **Try it with sample data** (Maya, Ethan and Sofia are made up).
+2. **Dashboard → Who owes you** shows each family's balance; open **Invoices**, pick a student, **Record a payment** of part of the balance, then **Print / Save PDF**.
+3. **Parent updates** turns a session's notes into an editable message; **Service hours** prints a sponsor log with a signature line.
+4. Tests (re-run Oct 11, 2026): `npm test` (62 unit + service-worker check), `npm i && npm run test:dom` (45), `python3 tests/e2e.py` (152), `python3 tests/print_test.py` (32). GitHub Actions runs all four on every push.
+
 ## The problem
 
 Lots of high school and college students tutor younger kids in math, reading, or test prep. Some do it for pay, and some as volunteer tutoring for NHS service hours. Their "back office" is spread across the Notes app, Venmo, and memory:
@@ -107,7 +114,7 @@ All four suites were re-run on Oct 11, 2026 (~6:50 PM ET): **62/62 unit (+ servi
 | Pro | $4/month or $36/year | Unlimited students now. Cloud sync and scheduled reminders are on the roadmap |
 | Club | $99 per school year | NHS chapters and peer-tutoring clubs (up to 50 tutors). Sponsor dashboard and verified hour reports are on the roadmap |
 
-The cost to serve a free user is close to $0 (static hosting, on-device processing). See `devpost.md` for the pitch, go-to-market plan, and video script.
+The cost to serve a free user is close to $0 (static hosting, on-device processing). See `pitch-outline.md` for the pitch and go-to-market plan and `demo-script.md` for the video script.
 
 ## Run locally
 
@@ -117,6 +124,7 @@ npm test                         # unit tests (no install needed)
 npm i && npm run test:dom        # jsdom smoke test
 python3 tests/e2e.py             # e2e (needs: pip install playwright && python -m playwright install chromium; or CHROMIUM_PATH=/usr/bin/chromium to use a system Chromium)
 SHOTS=out python3 tests/e2e.py   # e2e + screenshots of every page (desktop, mobile, print)
+python3 tests/print_test.py      # print check: every printable page as a US Letter PDF (needs playwright; poppler-utils for page/text checks)
 ```
 
 ## Deploy (GitHub Pages)
@@ -128,6 +136,8 @@ Repo **Settings → Pages → Build and deployment → Source: Deploy from a bra
 - Data lives in one browser. Use **Download backup** to move it to another device (there's no sync yet).
 - Payment is tracked, not processed. Reminders and updates open in your own email app.
 - Plan upgrades are simulated. "Cloud sync", "scheduled reminders", and the "Club sponsor dashboard" are roadmap items.
+- The whole app is English-only for now (no Spanish or other language mode).
+- Printing is tested at US Letter in Chromium; other paper sizes and browsers should work but aren't covered by the print check.
 - The update engine is rule-based and English-only. It's good at summarising notes, but it doesn't understand them like a person would, which is why every message is editable.
 
 ## AI assistance
