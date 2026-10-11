@@ -763,6 +763,7 @@
     }
     if (t.id === 'invPick') { refocusId = 'invPick'; location.hash = 'invoices/' + encodeURIComponent(t.value); }
     if (t.id === 'sumMonth' || t.id === 'sumWho') {
+      refocusId = t.id;   // keep focus on the picker the arrow keys changed, not the heading
       const mo = document.getElementById('sumMonth').value, who = document.getElementById('sumWho').value;
       location.hash = 'summary/' + encodeURIComponent(mo) + (who ? '/' + encodeURIComponent(who) : '');
     }
