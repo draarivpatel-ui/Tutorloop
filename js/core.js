@@ -18,7 +18,8 @@
       version: SCHEMA_VERSION,
       profile: { name: '', business: '', email: '', venmo: '', payMethod: '', referralFooter: false, plan: 'free', serviceGoal: '' },
       clients: [],
-      sessions: []
+      sessions: [],
+      payments: []
     };
   }
 
@@ -82,6 +83,20 @@
     return cents((Number.isFinite(rate) ? rate : 0) * hours);
   }
 
+  /**
+   * What is still owed on a session: its amount minus anything recorded as a part payment.
+   * Paid and volunteer sessions owe $0. A session never owes less than $0 if it is edited down.
+   */
+  function sessionDue(session, client) {
+    if (!session || session.volunteer || session.paid) return 0;
+    return cents(Math.max(0, sessionAmount(session, client) - (Number(session.partPaid) || 0)));
+  }
+
+  /** Sum of what is still owed across a list of sessions of one student. */
+  function dueTotal(sessions, client) {
+    return cents(sessions.reduce((a, s) => a + Math.round(sessionDue(s, client) * 100), 0) / 100);
+  }
+
   function clientById(state, id) {
     return state.clients.find(c => c.id === id) || null;
   }
@@ -120,14 +135,15 @@
       const c = clientById(state, s.clientId);
       const amt = sessionAmount(s, c);
       const hrs = (Number(s.minutes) || 0) / 60;
-      if (!s.volunteer && !s.paid) unpaidAll += amt;
+      const due = sessionDue(s, c);
+      if (!s.volunteer && !s.paid) unpaidAll += due;
       if (s.volunteer) volunteerAll += hrs;
       if (month && monthKey(s.date) !== month) continue;
       sessionsCount++;
       if (s.volunteer) { volunteerHours += hrs; continue; }
       paidHours += hrs;
       earned += amt;
-      if (s.paid) collected += amt; else unpaid += amt;
+      collected += amt - due; unpaid += due;
     }
     return {
       earned: cents(earned), collected: cents(collected), unpaid: cents(unpaid),
@@ -155,7 +171,7 @@
       .map(c => {
         const ss = state.sessions.filter(s => s.clientId === c.id);
         const unpaid = ss.filter(s => !s.paid && !s.volunteer);
-        const owed = unpaid.reduce((a, s) => a + sessionAmount(s, c), 0);
+        const owed = dueTotal(unpaid, c);
         const last = ss.map(s => s.date).sort().pop() || null;
         const oldestUnpaid = unpaid.map(s => s.date).sort()[0] || null;
         return { client: c, owed: cents(owed), sessions: ss.length, unpaidSessions: unpaid.length, lastSession: last, oldestUnpaid };
@@ -307,7 +323,7 @@
       const nextTopics = String(ss[ss.length - 1].topics || '').split(/[,;]+/).map(t => t.trim()).filter(Boolean);
       if (nextTopics.length) lines.push('• Next up: building on ' + joinList(nextTopics.slice(0, 2)) + '.');
     }
-    const owed = ss.filter(s => !s.paid && !s.volunteer).reduce((a, s) => a + sessionAmount(s, c), 0);
+    const owed = dueTotal(ss.filter(s => !s.paid && !s.volunteer), c);
     if (owed > 0) {
       const pay = paymentSentence(state.profile);
       lines.push('', 'Balance for these sessions: ' + money(owed) + '.' + (pay ? ' ' + pay : ''));
@@ -376,15 +392,15 @@
     const items = state.sessions.filter(s => s.clientId === clientId && !s.paid && !s.volunteer)
       .sort((a, b) => a.date.localeCompare(b.date));
     if (!items.length) return '';
-    const total = cents(items.reduce((a, s) => a + sessionAmount(s, c), 0));
+    const total = dueTotal(items, c);
     const first = String(c.name).trim().split(/\s+/)[0];
     const lines = [c.parentName ? 'Hi ' + c.parentName + ',' : 'Hi,', '',
       'Just a friendly reminder about ' + first + "'s tutoring balance of " + money(total) + ' for ' + plural(items.length, 'session') + ':', ''];
     // A long backlog (say 60 unpaid sessions) would make a message too long for an email link, so the oldest ones roll up into one line. The total above always covers every session.
     const listed = items.length > REMINDER_MAX_LINES ? items.slice(items.length - REMINDER_MAX_LINES) : items;
     const rolled = items.slice(0, items.length - listed.length);
-    if (rolled.length) lines.push('• ' + plural(rolled.length, 'earlier session') + ' (' + fmtDate(rolled[0].date) + ' to ' + fmtDate(rolled[rolled.length - 1].date) + '): ' + money(rolled.reduce((a, s) => a + sessionAmount(s, c), 0)));
-    listed.forEach(s => lines.push('• ' + fmtDate(s.date) + ': ' + s.minutes + ' min' + (s.topics ? ' (' + s.topics + ')' : '') + ', ' + money(sessionAmount(s, c))));
+    if (rolled.length) lines.push('• ' + plural(rolled.length, 'earlier session') + ' (' + fmtDate(rolled[0].date) + ' to ' + fmtDate(rolled[rolled.length - 1].date) + '): ' + money(dueTotal(rolled, c)));
+    listed.forEach(s => lines.push('• ' + fmtDate(s.date) + ': ' + s.minutes + ' min' + (s.topics ? ' (' + s.topics + ')' : '') + ', ' + (Number(s.partPaid) > 0 ? money(sessionDue(s, c)) + ' left (' + money(s.partPaid) + ' already paid of ' + money(sessionAmount(s, c)) + ')' : money(sessionAmount(s, c)))));
     lines.push('');
     const pay = paymentSentence(state.profile);
     if (pay) lines.push(pay);
@@ -418,11 +434,11 @@
       const c = clientById(state, s.clientId);
       if (!per.has(s.clientId)) per.set(s.clientId, Object.assign(blank(), { client: c || { id: s.clientId, name: 'Unknown student' }, list: [] }));
       const row = per.get(s.clientId);
-      const min = Number(s.minutes) || 0, amt = sessionAmount(s, c);
+      const min = Number(s.minutes) || 0, amt = sessionAmount(s, c), due = sessionDue(s, c);
       for (const t of [totals, row]) {
         t.sessions++; t.minutes += min;
         if (s.volunteer) { t.volunteerSessions++; t.volunteerMinutes += min; }
-        else { t.paidSessions++; t.paidMinutes += min; t.billed += amt; if (s.paid) t.paid += amt; else t.unpaid += amt; }
+        else { t.paidSessions++; t.paidMinutes += min; t.billed += amt; t.paid += amt - due; t.unpaid += due; }
       }
       row.list.push(s);
     }
@@ -433,7 +449,7 @@
     let balanceAll = null;
     if (clientId) {
       const c = clientById(state, clientId);
-      balanceAll = cents(state.sessions.filter(s => s.clientId === clientId && !s.paid && !s.volunteer).reduce((a, s) => a + sessionAmount(s, c), 0));
+      balanceAll = dueTotal(state.sessions.filter(s => s.clientId === clientId && !s.paid && !s.volunteer), c);
     }
     return { month, clientId: clientId || '', totals, students, sessions: ss, topics: topicList(ss), balanceAll };
   }
@@ -516,8 +532,8 @@
     const items = state.sessions
       .filter(s => s.clientId === clientId && !s.paid && !s.volunteer)
       .sort((a, b) => a.date.localeCompare(b.date))
-      .map(s => ({ id: s.id, date: s.date, minutes: Number(s.minutes), topics: s.topics || '', amount: sessionAmount(s, c) }));
-    const total = cents(items.reduce((a, i) => a + i.amount, 0));
+      .map(s => ({ id: s.id, date: s.date, minutes: Number(s.minutes), topics: s.topics || '', amount: sessionDue(s, c), full: sessionAmount(s, c), partPaid: Number(s.partPaid) > 0 ? cents(s.partPaid) : 0 }));
+    const total = cents(items.reduce((a, i) => a + Math.round(i.amount * 100), 0) / 100);
     const stamp = String(today || (items.length ? items[items.length - 1].date : '')).replace(/-/g, '');
     return { client: c, items, total, number: 'INV-' + stamp + '-' + shortHash(clientId + items.map(i => i.id).join('|')) };
   }
@@ -549,11 +565,11 @@
   }
 
   function sessionsCSV(state) {
-    const rows = [['Date', 'Student', 'Minutes', 'Rate', 'Amount', 'Paid', 'Volunteer', 'Topics', 'Notes']];
+    const rows = [['Date', 'Student', 'Minutes', 'Rate', 'Amount', 'Paid', 'Volunteer', 'Topics', 'Notes', 'Part paid']];
     state.sessions.slice().sort((a, b) => a.date.localeCompare(b.date)).forEach(s => {
       const c = clientById(state, s.clientId) || {};
       rows.push([s.date, c.name || '', Number(s.minutes), s.rate != null && s.rate !== '' ? Number(s.rate) : Number(c.rate) || 0, sessionAmount(s, c),
-        s.paid ? 'yes' : 'no', s.volunteer ? 'yes' : 'no', s.topics || '', s.notes || '']);
+        s.paid ? 'yes' : 'no', s.volunteer ? 'yes' : 'no', s.topics || '', s.notes || '', !s.paid && Number(s.partPaid) > 0 ? cents(s.partPaid) : 0]);
     });
     return toCSV(rows);
   }
@@ -591,11 +607,63 @@
       Number(s.minutes) > 0 && Number(s.minutes) <= MAX_MINUTES && !sids.has(String(s.id)) && sids.add(String(s.id))).map(s => ({
       id: String(s.id), clientId: String(s.clientId), date: s.date, minutes: Number(s.minutes),
       rate: s.rate == null || s.rate === '' || isNaN(Number(s.rate)) ? null : Math.max(0, Number(s.rate)),
-      topics: str(s.topics, 300), notes: str(s.notes, 2000), paid: !!s.paid, volunteer: !!s.volunteer
+      topics: str(s.topics, 300), notes: str(s.notes, 2000), paid: !!s.paid, volunteer: !!s.volunteer,
+      partPaid: !s.paid && !s.volunteer && Number(s.partPaid) > 0 ? Math.min(cents(s.partPaid), 1e6) : 0
     }));
-    const out = { version: SCHEMA_VERSION, profile, clients, sessions };
+    sessions.forEach(s => { if (!s.partPaid) delete s.partPaid; });
+    const pids = new Set();
+    const payments = (Array.isArray(data.payments) ? data.payments : []).filter(x => x && x.id && ids.has(String(x.clientId)) && isValidDate(x.date) &&
+      Number(x.amount) > 0 && !pids.has(String(x.id)) && pids.add(String(x.id))).slice(0, 5000).map(x => ({ id: String(x.id), clientId: String(x.clientId), date: x.date, amount: Math.min(cents(x.amount), 1e6) }));
+    const out = { version: SCHEMA_VERSION, profile, clients, sessions, payments };
     if (data.sample === true) out.sample = true;   // made with "Try it with sample data"; the app shows a "Start fresh" bar
     return out;
+  }
+
+  /* ---------- part payments ---------- */
+
+  const MAX_PAYMENT = 100000;
+
+  /**
+   * Plan a payment toward one family's balance. It is applied oldest session first: each session it
+   * fully covers becomes paid, and what is left over is kept as a part payment on the next-oldest one.
+   * A payment larger than the balance is refused (TutorLoop does not hold prepayments). Pure: it
+   * changes nothing; applyPayment() does.
+   */
+  function planPayment(state, clientId, amount) {
+    const c = clientById(state, clientId);
+    if (!c) return { ok: false, error: 'Pick a student.' };
+    const raw = Number(amount);
+    if (amount === '' || amount == null || !Number.isFinite(raw) || raw <= 0) return { ok: false, error: 'Enter an amount greater than $0.' };
+    if (raw > MAX_PAYMENT) return { ok: false, error: 'Payments can be up to ' + money(MAX_PAYMENT) + '.' };
+    const paying = Math.round(cents(raw) * 100);
+    if (paying <= 0) return { ok: false, error: 'Enter an amount of at least $0.01.' };
+    const items = state.sessions.map((s, i) => ({ s, i })).filter(x => x.s.clientId === clientId && !x.s.paid && !x.s.volunteer && sessionDue(x.s, c) > 0)
+      .sort((a, b) => a.s.date.localeCompare(b.s.date) || a.i - b.i).map(x => x.s);
+    const owed = items.reduce((a, s) => a + Math.round(sessionDue(s, c) * 100), 0);
+    if (!owed) return { ok: false, error: 'Nothing is owed for this student.' };
+    if (paying > owed) return { ok: false, error: 'That is more than the ' + money(owed / 100) + ' owed. Enter ' + money(owed / 100) + ' or less.' };
+    let left = paying;
+    const steps = [];
+    for (const s of items) {
+      if (left <= 0) break;
+      const due = Math.round(sessionDue(s, c) * 100);
+      if (left >= due) { steps.push({ id: s.id, applied: due / 100, settles: true }); left -= due; }
+      else { steps.push({ id: s.id, applied: left / 100, settles: false }); left = 0; }
+    }
+    return { ok: true, amount: paying / 100, owedBefore: owed / 100, owedAfter: (owed - paying) / 100, steps, settled: steps.filter(x => x.settles).length };
+  }
+
+  /** Apply a plan from planPayment() to the state and log it. */
+  function applyPayment(state, clientId, plan, date) {
+    if (!plan || !plan.ok) return state;
+    for (const st of plan.steps) {
+      const s = state.sessions.find(x => x.id === st.id); if (!s) continue;
+      if (st.settles) { s.paid = true; delete s.partPaid; }
+      else s.partPaid = cents((Number(s.partPaid) || 0) + st.applied);
+    }
+    if (!Array.isArray(state.payments)) state.payments = [];
+    state.payments.push({ id: uid('p'), clientId, date, amount: plan.amount });
+    return state;
   }
 
   /* ---------- demo data ---------- */
@@ -629,7 +697,7 @@
 
   const api = {
     SCHEMA_VERSION, FREE_CLIENT_LIMIT, MAX_MINUTES, uid, emptyState, cents, money, plural, isValidDate, addDays,
-    sessionAmount, clientById, validateClient, validateSession, stats, monthlySeries, balances, lastSession,
+    sessionAmount, sessionDue, planPayment, applyPayment, MAX_PAYMENT, clientById, validateClient, validateSession, stats, monthlySeries, balances, lastSession,
     serviceProgress, rangePreset, topicList, sentiment, sentence, progressReport, reminderMessage, invoice,
     APP_URL, PAY_METHODS, guessPayMethod, paymentText, paymentSentence, referralFooter,
     csvEscape, volunteerCSV, sessionsCSV, importState, demoState, fmtDate, fmtMonth, monthKey,
