@@ -128,8 +128,17 @@
     }
   }
 
+  const MAILTO_MAX = 8000; // email apps and browsers drop or refuse much longer links; ordinary messages are well under this
   function mailto(to, subject, body) {
-    return 'mailto:' + encodeURIComponent(to || '') + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    const head = 'mailto:' + encodeURIComponent(to || '') + '?subject=' + encodeURIComponent(subject) + '&body=';
+    let text = String(body || '');
+    if ((head + encodeURIComponent(text)).length > MAILTO_MAX) {
+      const note = '\n\n[Shortened to fit your email app. Use "Copy" in TutorLoop for the full text.]';
+      const lines = text.split('\n');
+      while (lines.length > 1 && (head + encodeURIComponent(lines.join('\n') + note)).length > MAILTO_MAX) lines.pop();
+      text = lines.join('\n') + note;
+    }
+    return head + encodeURIComponent(text);
   }
 
   /** Settings preview of the exact payment sentence parents will see. Plain text (used via textContent too). */
@@ -605,7 +614,7 @@
       const bh = Math.max(d.earned > 0 ? 3 : 0, (h - 64) * d.earned / max), x = pad + i * bw + bw * 0.2, y = h - 31 - bh;
       g.fillStyle = i === data.length - 1 ? col('--brand') : col('--brand-soft');
       g.beginPath(); if (g.roundRect) g.roundRect(x, y, bw * 0.6, bh, [6, 6, 0, 0]); else g.rect(x, y, bw * 0.6, bh); g.fill();
-      if (d.earned > 0) { g.fillStyle = col('--ink'); g.fillText('$' + Math.round(d.earned), x + bw * 0.3, y - 6); }
+      if (d.earned > 0) { g.fillStyle = col('--ink'); g.fillText('$' + Math.round(d.earned).toLocaleString('en-US'), x + bw * 0.3, y - 6); }
       g.fillStyle = col('--muted');
       g.fillText(C.fmtMonth(d.month, 'short'), x + bw * 0.3, h - 10);
     });
