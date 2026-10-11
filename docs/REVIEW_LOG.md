@@ -151,5 +151,9 @@ A landing page linked from the nav and the empty-state dashboard: the problem, h
 
 **Tests after iteration 5:** unit 33/33, jsdom 19/19, e2e 64/64.
 
-## TODO for next cycle (from submission team, Oct 10)
-- core.js ~L309 and ~L328: payment reminder / parent update ends "You can pay by @aariv-tutoring." Add the payment method name (e.g. "Venmo @..."), fix before video recording.
+### Iteration 6 (Oct 10): payment wording, opt-in referral footer, competitor prices
+- Fixed: reminders and parent updates now say "You can pay with Venmo @aariv-tutoring." (was "You can pay by @aariv-tutoring."). New "Payment app" setting; blank is guessed from the handle.
+- Built: opt-in "Sent with TutorLoop" footer on parent updates, reminders, and invoices. Off by default; a plain link with no tracking.
+- Why TutorLoop now compares list prices with TutorBird ($16.95/mo + $4.95 per extra tutor) and Teachworks Starter ($16.49/mo + $0.32 per student lesson), with source links, checked Oct 10, 2026.
+
+**Tests after iteration 6:** unit 41/41, jsdom 19/19, e2e 71/71.
