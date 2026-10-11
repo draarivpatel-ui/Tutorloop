@@ -53,6 +53,9 @@ for (const r of ['log', 'students', 'reports', 'invoices', 'hours', 'settings', 
 go('about');
 ok('pitch page is honest about traction', text().includes('No paying customers yet') && text().includes('Checkout in the app is a simulation'));
 ok('pitch page fee math matches published Stripe rates', text().includes('$0.44') && text().includes('$3.56') && text().includes('$95.14'));
+{ const r = [...d.querySelectorAll('#app tr')].find(tr => tr.textContent.includes('Pro (annual)'));
+  ok('Business model table has a concrete Annual Pro row with computed fees and % kept', !!r && [...r.cells].map(td => td.textContent.trim()).join('|') === 'Pro (annual)|$36.00/yr|$1.60|$34.40 (96%)');
+  ok('pitch page says who pays for Free, Pro and Club and that annual Pro is not on sale yet', text().includes('Who pays:') && text().includes('Club is paid by a school club or NHS chapter') && text().includes('4% of a $36 year') && text().includes('It is not on sale yet')); }
 
 go('reports');
 ok('parent update auto-generates', d.getElementById('reportOut').value.startsWith('Hi Mrs. Chen,'));
@@ -101,12 +104,21 @@ ok('an empty payment asks for an amount', d.querySelector('#payForm .form-errors
 pf.querySelector('[name=amount]').value = '10.50'; submit(pf);
 ok('a $10.50 payment lowers the balance by exactly $10.50 and is logged', w.TutorCore.balances(st()).find(b => b.client.id === 'c_maya').owed === w.TutorCore.cents(maya0 - 10.5) && saved().payments.length === 1 && saved().payments[0].amount === 10.5);
 ok('invoice shows the part-paid line, the new total, and the payment history', text().includes('$10.50 of $25.00 already paid') && text().includes(w.TutorCore.money(maya0 - 10.5)) && text().includes('Payments recorded for Maya Chen (1)'));
+go('dashboard');
+ok('dashboard "Who owes you" row shows the part-paid state', [...d.querySelectorAll('#app .part-paid')].some(x => x.textContent === '$10.50 of ' + w.TutorCore.money(maya0) + ' paid'));
+go('invoices/c_maya');
 ok('the toast names the amount and what is still owed', toastBox.textContent.includes('$10.50 recorded for Maya. ' + w.TutorCore.money(maya0 - 10.5) + ' still owed.'));
 d.querySelector('.toast-undo').click();
 ok('undo takes the payment back', w.TutorCore.balances(st()).find(b => b.client.id === 'c_maya').owed === maya0 && (saved().payments || []).length === 0);
 go('invoices/c_maya');
 d.getElementById('payForm').querySelector('[name=amount]').value = String(maya0); submit(d.getElementById('payForm'));
 ok('paying the exact balance clears it and removes the form', w.TutorCore.balances(st()).find(b => b.client.id === 'c_maya').owed === 0 && !d.getElementById('payForm'));
+{ const thisMonth = saved().payments[0].date.slice(0, 7);
+  go('summary/' + thisMonth + '/c_maya');
+  const sec = d.querySelector('.statement-payments');
+  ok('family statement has a Payments section with the date and amount received this month', !!sec && sec.textContent.includes('Payments received in ' + w.TutorCore.fmtMonth(thisMonth)) && sec.textContent.includes(w.TutorCore.money(maya0)) && d.getElementById('summaryText').value.includes('Payments received in ' + w.TutorCore.fmtMonth(thisMonth)));
+  go('summary/' + thisMonth + '/c_ethan');
+  ok('a family with no recorded payments gets no Payments section', !d.querySelector('.statement-payments')); }
 
 // Escape dismisses a toast, and after the fade it is fully removed (hidden + emptied).
 go('reports');
@@ -116,6 +128,16 @@ d.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
 ok('Escape dismisses the toast', !toastBox.classList.contains('show'));
 setTimeout(() => {
   ok('a dismissed toast is removed from the page (hidden, no leftover Undo button)', toastBox.hidden && toastBox.innerHTML === '');
-  ok('no uncaught errors', errors.length === 0);
-  console.log(`\n${n} DOM checks passed`);
+  // Empty app: "Start with my own students" (Why page) and "Add a student" go to the dashboard quick-start form.
+  go('settings'); d.querySelector('[data-act=reset]').click();
+  go('about'); d.querySelector('#app [data-act=startOwn]').click();
+  setTimeout(() => {
+    ok('empty app: Why page "Start with my own students" lands on the quick-start form', w.location.hash === '#dashboard' && d.activeElement && d.activeElement.id === 'q-name');
+    go('invoices'); d.querySelector('#app [data-act=startOwn]').click();
+    setTimeout(() => {
+      ok('empty app: "Add a student" also lands on the quick-start form', w.location.hash === '#dashboard' && d.activeElement && d.activeElement.id === 'q-name');
+      ok('no uncaught errors', errors.length === 0);
+      console.log(`\n${n} DOM checks passed`);
+    }, 150);
+  }, 150);
 }, 400);
