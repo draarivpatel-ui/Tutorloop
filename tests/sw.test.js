@@ -2,9 +2,11 @@ const assert = require('assert');
 (async () => {
   const fs = require('fs'), path = require('path'), vm = require('vm');
   const src = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
+  // The current cache name is read from sw.js, so bumping VERSION on a release never breaks this test.
+  const CUR = 'tutorloop-' + src.match(/const VERSION = PREFIX \+ '([^']+)'/)[1];
   const handlers = {}; const deleted = []; let skipped = false, claimed = false, opened = null;
   const caches = {
-    keys: async () => ['tutorloop-v1', 'tutorloop-v12', 'other-app-v3'],
+    keys: async () => ['tutorloop-v1', CUR, 'other-app-v3'],
     delete: async k => { deleted.push(k); return true; },
     open: async n => { opened = n; return { addAll: async files => { caches.files = files; } }; }
   };
@@ -13,7 +15,7 @@ const assert = require('assert');
   vm.runInNewContext(src, { self, caches, URL, Response: class {} });
   const run = async n => { let p; handlers[n]({ waitUntil: x => { p = x; } }); await p; };
   await run('install'); await run('activate');{
-    assert.strictEqual(opened, 'tutorloop-v12');
+    assert.strictEqual(opened, CUR);
     for (const f of caches.files) assert.ok(fs.existsSync(path.join(__dirname, '..', f === './' ? 'index.html' : f)), f + ' missing');
     assert.ok(skipped && claimed);
     assert.deepStrictEqual(deleted, ['tutorloop-v1']);
