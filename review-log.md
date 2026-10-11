@@ -32,3 +32,12 @@ Shipped (sw.js cache v7):
 - **Polish:** Settings/log checkboxes no longer squash to a 13 px box with centred two-line labels.
 Tests: unit 50/50 (+3), jsdom 30/30, e2e 96/96 (+4 scale checks: 5,000 sessions / 50 students re-render in ~0.2 s, separators, email links under 8,200 chars, 0 page errors).
 Not done / ideas: partial payments (credit toward next session); recurring weekly schedule.
+
+## Cycle 6 · Sun Oct 11 2026 12:00–12:40 PM CT
+Backlog item: partial payments. The entry is already submitted, so this is additive and touches no flow shown in the video.
+Gap (Business & Finance, UX): a parent who pays $40 of a $75 balance left the tutor two bad choices, mark a $25 session paid and lose track of the rest, or leave everything unpaid.
+Shipped (sw.js cache v9):
+- **Record a payment** on the Invoices page: enter what the family sent; it settles the oldest sessions first (by date, not entry order) and keeps the remainder as a part payment on the next-oldest. Refused when empty, zero, negative, over $100,000, or more than the balance (no prepayments, said plainly). Undo works; a payment history list sits under the form.
+- Everything that shows money now uses what is still owed: dashboard totals and Who owes you, invoice (with an 'already paid' line per part-paid session), reminder email ('$10.00 left ($15.00 already paid of $25.00)'), monthly statement, parent progress report, CSV export (new Part paid column). Old data with no part payments behaves exactly as before.
+- Backups and undo keep part payments and the payment log; bad rows (unknown student, bad date, negative amount, volunteer sessions) are dropped on import.
+Tests: unit 51 -> 58 (cent precision with 33.33/hr and four small payments, oldest-first by date, refusal cases, purity, import/backup, CSV), DOM 30 -> 38, Chromium e2e 106 -> 112 (typing into the real field, negative refused, exact balance drop, focus returns, undo). Visual check at 390 and 1280 px in Chromium: form, button and part-paid note fit, no overflow.
