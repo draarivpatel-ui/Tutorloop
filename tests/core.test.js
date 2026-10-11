@@ -9,6 +9,14 @@ function test(name, fn) {
 }
 const demo = () => C.demoState('2026-10-10');
 
+test('sample data is flagged, the flag survives backup/undo, and real data never gets it', () => {
+  assert.strictEqual(demo().sample, true);
+  assert.strictEqual(C.importState(JSON.stringify(demo())).sample, true);
+  assert.strictEqual(C.emptyState().sample, undefined);
+  const real = C.emptyState(); real.sample = 'yes';
+  assert.strictEqual(C.importState(real).sample, undefined);
+});
+
 /* money */
 test('reminder for a long backlog rolls older sessions into one line and keeps the total', () => {
   const st = C.emptyState(); st.profile.name = 'Aariv';
