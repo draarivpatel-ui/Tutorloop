@@ -89,6 +89,25 @@ ok('settings shows plan usage and Pro in minutes of tutoring', text().includes('
 go('invoices/does-not-exist');
 ok('unknown invoice id does not crash', text().includes('not found'));
 
+// Record a payment: part payment on the invoices page.
+go('invoices/c_maya');
+const maya0 = w.TutorCore.balances(st()).find(b => b.client.id === 'c_maya').owed;
+ok('invoices page has a Record a payment form when money is owed', !!d.getElementById('payForm') && maya0 > 25);
+const pf = d.getElementById('payForm');
+pf.querySelector('[name=amount]').value = String(maya0 + 15); submit(pf);
+ok('a payment above the balance is refused with the balance named', d.querySelector('#payForm .form-errors').textContent.includes('more than the ' + w.TutorCore.money(maya0) + ' owed') && (saved().payments || []).length === 0);
+pf.querySelector('[name=amount]').value = ''; submit(pf);
+ok('an empty payment asks for an amount', d.querySelector('#payForm .form-errors').textContent.includes('Enter an amount'));
+pf.querySelector('[name=amount]').value = '10.50'; submit(pf);
+ok('a $10.50 payment lowers the balance by exactly $10.50 and is logged', w.TutorCore.balances(st()).find(b => b.client.id === 'c_maya').owed === w.TutorCore.cents(maya0 - 10.5) && saved().payments.length === 1 && saved().payments[0].amount === 10.5);
+ok('invoice shows the part-paid line, the new total, and the payment history', text().includes('$10.50 of $25.00 already paid') && text().includes(w.TutorCore.money(maya0 - 10.5)) && text().includes('Payments recorded for Maya Chen (1)'));
+ok('the toast names the amount and what is still owed', toastBox.textContent.includes('$10.50 recorded for Maya. ' + w.TutorCore.money(maya0 - 10.5) + ' still owed.'));
+d.querySelector('.toast-undo').click();
+ok('undo takes the payment back', w.TutorCore.balances(st()).find(b => b.client.id === 'c_maya').owed === maya0 && (saved().payments || []).length === 0);
+go('invoices/c_maya');
+d.getElementById('payForm').querySelector('[name=amount]').value = String(maya0); submit(d.getElementById('payForm'));
+ok('paying the exact balance clears it and removes the form', w.TutorCore.balances(st()).find(b => b.client.id === 'c_maya').owed === 0 && !d.getElementById('payForm'));
+
 // Escape dismisses a toast, and after the fade it is fully removed (hidden + emptied).
 go('reports');
 submit(d.getElementById('reportForm'));
