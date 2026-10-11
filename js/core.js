@@ -385,6 +385,114 @@
     return lines.join('\n');
   }
 
+  /* ---------- monthly summary (parents, sponsors, the tutor's own records) ---------- */
+
+  /** Months that have sessions, newest first, always including `current` (YYYY-MM). */
+  function summaryMonths(state, current) {
+    const set = new Set(state.sessions.map(s => monthKey(s.date)).filter(Boolean));
+    if (current) set.add(current);
+    return [...set].sort().reverse();
+  }
+
+  /**
+   * One month in numbers, for every student (clientId falsy) or one student.
+   * "Paid" and "unpaid" are each session's current status: TutorLoop does not record payment dates.
+   */
+  function monthSummary(state, month, clientId) {
+    const ss = state.sessions
+      .filter(s => monthKey(s.date) === month && (!clientId || s.clientId === clientId))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const blank = () => ({ sessions: 0, paidSessions: 0, volunteerSessions: 0, minutes: 0, paidMinutes: 0, volunteerMinutes: 0, billed: 0, paid: 0, unpaid: 0 });
+    const totals = blank();
+    const per = new Map();
+    for (const s of ss) {
+      const c = clientById(state, s.clientId);
+      if (!per.has(s.clientId)) per.set(s.clientId, Object.assign(blank(), { client: c || { id: s.clientId, name: 'Unknown student' }, list: [] }));
+      const row = per.get(s.clientId);
+      const min = Number(s.minutes) || 0, amt = sessionAmount(s, c);
+      for (const t of [totals, row]) {
+        t.sessions++; t.minutes += min;
+        if (s.volunteer) { t.volunteerSessions++; t.volunteerMinutes += min; }
+        else { t.paidSessions++; t.paidMinutes += min; t.billed += amt; if (s.paid) t.paid += amt; else t.unpaid += amt; }
+      }
+      row.list.push(s);
+    }
+    const finish = t => Object.assign(t, { hours: cents(t.minutes / 60), paidHours: cents(t.paidMinutes / 60), volunteerHours: cents(t.volunteerMinutes / 60), billed: cents(t.billed), paid: cents(t.paid), unpaid: cents(t.unpaid) });
+    finish(totals);
+    const students = [...per.values()].map(r => { finish(r); r.topics = topicList(r.list); delete r.list; return r; })
+      .sort((a, b) => String(a.client.name).localeCompare(String(b.client.name)));
+    let balanceAll = null;
+    if (clientId) {
+      const c = clientById(state, clientId);
+      balanceAll = cents(state.sessions.filter(s => s.clientId === clientId && !s.paid && !s.volunteer).reduce((a, s) => a + sessionAmount(s, c), 0));
+    }
+    return { month, clientId: clientId || '', totals, students, sessions: ss, topics: topicList(ss), balanceAll };
+  }
+
+  /**
+   * Plain-text version of a monthly summary: a statement for one family, or a recap of the whole
+   * month for the tutor (or a sponsor) when no student is picked.
+   */
+  function summaryText(state, month, clientId) {
+    const m = monthSummary(state, month, clientId);
+    const t = m.totals;
+    const label = fmtMonth(month);
+    const tutor = state.profile.name || 'Your tutor';
+    const lines = [];
+    if (clientId) {
+      const c = clientById(state, clientId);
+      if (!c) return '';
+      const first = String(c.name).trim().split(/\s+/)[0];
+      lines.push(c.parentName ? 'Hi ' + c.parentName + ',' : 'Hi,', '');
+      if (!t.sessions) {
+        lines.push('There were no tutoring sessions with ' + first + ' in ' + label + '.');
+      } else {
+        lines.push('Here is ' + first + "'s " + (c.subject ? c.subject + ' ' : '') + 'tutoring summary for ' + label + '.', '');
+        lines.push('• Sessions: ' + t.sessions + ' (' + plural(t.hours, 'hour') + ')');
+        if (t.volunteerSessions) lines.push('• Volunteer (no charge): ' + plural(t.volunteerSessions, 'session') + ', ' + plural(t.volunteerHours, 'hour'));
+        if (m.topics.length) lines.push('• Covered: ' + joinList(m.topics.slice(0, 8)));
+        lines.push('', 'Session log:');
+        m.sessions.forEach(s => lines.push('• ' + fmtDate(s.date) + ': ' + s.minutes + ' min' + (s.topics ? ' (' + s.topics + ')' : '') +
+          (s.volunteer ? ', volunteer' : ', ' + money(sessionAmount(s, c)) + (s.paid ? ', paid' : ', unpaid'))));
+        if (t.paidSessions) {
+          lines.push('', 'Charges for ' + label + ': ' + money(t.billed) + ' (paid ' + money(t.paid) + ', unpaid ' + money(t.unpaid) + ').');
+          if (m.balanceAll > 0) {
+            const pay = paymentSentence(state.profile);
+            lines.push('Total balance due today: ' + money(m.balanceAll) + '.' + (pay ? ' ' + pay : ''));
+          } else lines.push('Nothing is due. Thank you!');
+        }
+      }
+      lines.push('', 'Thanks,', tutor);
+    } else {
+      lines.push('Tutoring summary for ' + label + (state.profile.business ? ' · ' + state.profile.business : '') + (state.profile.name ? ' · ' + state.profile.name : ''), '');
+      if (!t.sessions) lines.push('No sessions were logged in ' + label + '.');
+      else {
+        lines.push('• Sessions: ' + t.sessions + ' with ' + plural(m.students.length, 'student') + ' (' + plural(t.hours, 'hour') + ')');
+        lines.push('• Paid tutoring: ' + plural(t.paidHours, 'hour') + ', ' + money(t.billed) + ' charged, ' + money(t.paid) + ' paid, ' + money(t.unpaid) + ' unpaid');
+        lines.push('• Volunteer tutoring (service hours): ' + plural(t.volunteerHours, 'hour') + ' in ' + plural(t.volunteerSessions, 'session'));
+        lines.push('', 'By student:');
+        m.students.forEach(r => lines.push('• ' + r.client.name + ': ' + plural(r.sessions, 'session') + ', ' + plural(r.hours, 'hour') +
+          (r.paidSessions ? ', ' + money(r.billed) + ' charged' + (r.unpaid ? ' (' + money(r.unpaid) + ' unpaid)' : '') : '') +
+          (r.volunteerSessions ? ', ' + plural(r.volunteerHours, 'volunteer hour') : '')));
+      }
+    }
+    const footer = referralFooter(state.profile);
+    if (footer) lines.push('', '--', footer);
+    return lines.join('\n');
+  }
+
+  /**
+   * What the Pro price means in this tutor's own terms: minutes of tutoring at their average paid
+   * rate. Returns null until there is a paid rate to compare against.
+   */
+  function proValue(state, price) {
+    let mins = 0, amt = 0;
+    for (const s of state.sessions) { if (s.volunteer) continue; const a = sessionAmount(s, clientById(state, s.clientId)); if (a > 0) { mins += Number(s.minutes) || 0; amt += a; } }
+    if (!mins || !amt) return null;
+    const rate = cents(amt / (mins / 60));
+    return { rate, minutes: Math.max(1, Math.round(price / rate * 60)) };
+  }
+
   /** Short stable hash for readable IDs. */
   function shortHash(str) {
     let h = 0;
@@ -512,7 +620,8 @@
     sessionAmount, clientById, validateClient, validateSession, stats, monthlySeries, balances, lastSession,
     serviceProgress, rangePreset, topicList, sentiment, sentence, progressReport, reminderMessage, invoice,
     APP_URL, PAY_METHODS, guessPayMethod, paymentText, paymentSentence, referralFooter,
-    csvEscape, volunteerCSV, sessionsCSV, importState, demoState, fmtDate, fmtMonth, monthKey
+    csvEscape, volunteerCSV, sessionsCSV, importState, demoState, fmtDate, fmtMonth, monthKey,
+    summaryMonths, monthSummary, summaryText, proValue
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.TutorCore = api;
