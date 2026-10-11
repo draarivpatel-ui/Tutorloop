@@ -8,7 +8,7 @@
  *   - only requests under this worker's scope are cached;
  *   - the offline index.html fallback is used for page navigations only, never for scripts/CSS. */
 const PREFIX = 'tutorloop-';
-const VERSION = PREFIX + 'v16';
+const VERSION = PREFIX + 'v17';
 const SCOPE = new URL('./', self.location.href).href;          // e.g. https://aariv.me/Tutorloop/
 const INDEX = new URL('index.html', SCOPE).href;
 const SHELL = ['./', 'index.html', 'styles.css', 'js/core.js', 'js/app.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];

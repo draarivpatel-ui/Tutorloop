@@ -571,5 +571,32 @@ test('duplicate student names are refused (case and spacing ignored); editing a 
   assert.deepStrictEqual(C.validateClient({ name: maya.name + ' R.', rate: 20 }, s), []);
 });
 
+test('backup import with duplicate student names keeps both, warns plainly, and labels them apart', () => {
+  const b = { clients: [
+    { id: 'a', name: 'Maya Chen', subject: 'Algebra 1', grade: '8', rate: 25 },
+    { id: 'b', name: ' maya  chen ', subject: 'Geometry', rate: 30 },
+    { id: 'c', name: 'Ethan', rate: 20 }, { id: 'd', name: 'ETHAN', rate: 20 }, { id: 'e', name: 'Riya', rate: 20 }],
+    sessions: [{ id: 's1', clientId: 'a', date: '2026-10-01', minutes: 60 }, { id: 's2', clientId: 'b', date: '2026-10-02', minutes: 60 }] };
+  const st = C.importState(JSON.stringify(b));
+  assert.strictEqual(st.clients.length, 5, 'nothing dropped');
+  assert.strictEqual(st.sessions.length, 2);
+  const d = C.duplicateNames(st);
+  assert.deepStrictEqual(d.map(g => [g.name, g.clients.map(c => c.id)]), [['Maya Chen', ['a', 'b']], ['Ethan', ['c', 'd']]]);
+  const w = C.duplicateNamesWarning(st);
+  assert.ok(/2 students named Maya Chen/.test(w) && /2 students named Ethan/.test(w) && /All were kept/.test(w) && /last initial/.test(w), w);
+  assert.strictEqual(C.duplicateNamesWarning(demo()), '', 'no warning when names differ');
+  assert.strictEqual(C.clientLabel(st, st.clients[0]), 'Maya Chen (Algebra 1, grade 8)');
+  assert.strictEqual(C.clientLabel(st, st.clients[1]), ' maya  chen  (Geometry)');
+  assert.strictEqual(C.clientLabel(st, st.clients[2]), 'Ethan (#1)');
+  assert.strictEqual(C.clientLabel(st, st.clients[3]), 'ETHAN (#2)');
+  assert.strictEqual(C.clientLabel(st, st.clients[4]), 'Riya', 'unique names unchanged');
+  // The form rule still holds: a third Maya is refused, but either twin can be edited (rate) without renaming.
+  st.profile.plan = 'pro';
+  assert.ok(C.validateClient({ name: 'Maya Chen', rate: 20 }, st).some(e => /already have a student named/.test(e)));
+  assert.deepStrictEqual(C.validateClient({ id: 'a', name: 'Maya Chen', rate: 40 }, st), [], 'editing a twin keeps working');
+  assert.deepStrictEqual(C.validateClient({ id: 'b', name: 'Maya Chen G.', rate: 30 }, st), [], 'renaming a twin apart is allowed');
+  assert.ok(C.validateClient({ id: 'e', name: 'maya chen', rate: 30 }, st).some(e => /already have/.test(e)), 'renaming a third student onto the twins is refused');
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

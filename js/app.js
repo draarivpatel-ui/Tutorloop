@@ -178,7 +178,7 @@
 
   function clientOptions(selected, includeId) {
     const list = state.clients.filter(c => !c.archived || c.id === includeId);
-    return list.map(c => `<option value="${esc(c.id)}"${c.id === selected ? ' selected' : ''}>${esc(c.name)}${c.subject ? ' · ' + esc(c.subject) : ''}${c.archived ? ' (archived)' : ''}</option>`).join('');
+    return list.map(c => `<option value="${esc(c.id)}"${c.id === selected ? ' selected' : ''}>${esc(C.clientLabel(state, c))}${c.subject && C.clientLabel(state, c) === c.name ? ' · ' + esc(c.subject) : ''}${c.archived ? ' (archived)' : ''}</option>`).join('');
   }
 
   /** Move the user to the 30-second quick-start form on the empty dashboard. */
@@ -338,6 +338,7 @@
       const atLimit = plan === 'free' && activeClients().length >= C.FREE_CLIENT_LIMIT && !editing;
       return `
         <h1 tabindex="-1">Students</h1>
+        ${C.duplicateNames(state).length ? `<p class="notice" id="dupNote" role="status">${esc(C.duplicateNamesWarning(state))}</p>` : ''}
         <p class="sub">${plan === 'free' ? `Free plan: ${activeClients().length} of ${C.FREE_CLIENT_LIMIT} active students.` : (plan === 'club' ? 'Club plan' : 'Pro plan') + ': unlimited students.'}</p>
         <div class="grid two">
           <form class="card" id="clientForm" data-id="${editing ? esc(editing.id) : ''}" novalidate>
@@ -401,7 +402,7 @@
       return `
         <div class="no-print"><h1 tabindex="-1">Invoices</h1><p class="sub">Unpaid sessions roll into one invoice. Print it or save it as a PDF.</p>
           ${params[0] && !requested ? '<p class="notice">That student was not found, so the invoice with the largest balance is shown.</p>' : ''}
-          <div class="toolbar"><label for="invPick" class="sr-only">Student</label><select id="invPick">${state.clients.map(c => `<option value="${esc(c.id)}"${c.id === id ? ' selected' : ''}>${esc(c.name)}${c.archived ? ' (archived)' : ''}</option>`).join('')}</select>
+          <div class="toolbar"><label for="invPick" class="sr-only">Student</label><select id="invPick">${state.clients.map(c => `<option value="${esc(c.id)}"${c.id === id ? ' selected' : ''}>${esc(C.clientLabel(state, c))}${c.archived ? ' (archived)' : ''}</option>`).join('')}</select>
           <button class="btn" data-act="print" ${inv.items.length ? '' : 'disabled'}>Print / Save PDF</button>
           ${inv.items.length ? `<a class="btn ghost" href="${esc(mailto(inv.client.parentEmail, 'Tutoring balance for ' + inv.client.name, C.reminderMessage(state, id)))}">Email reminder</a>
             <button class="btn ghost" data-act="markPaidAll" data-id="${esc(id)}">Mark all paid</button>` : ''}</div>
@@ -445,7 +446,7 @@
           ${params[1] && !c ? '<p class="notice">That student was not found, so the summary for all students is shown.</p>' : ''}
           <div class="toolbar">
             <label for="sumMonth" class="sr-only">Month</label><select id="sumMonth">${months.map(k => `<option value="${esc(k)}"${k === month ? ' selected' : ''}>${esc(C.fmtMonth(k))}</option>`).join('')}</select>
-            <label for="sumWho" class="sr-only">Student</label><select id="sumWho"><option value="">All students</option>${state.clients.map(x => `<option value="${esc(x.id)}"${c && x.id === c.id ? ' selected' : ''}>${esc(x.name)} (family statement)</option>`).join('')}</select>
+            <label for="sumWho" class="sr-only">Student</label><select id="sumWho"><option value="">All students</option>${state.clients.map(x => `<option value="${esc(x.id)}"${c && x.id === c.id ? ' selected' : ''}>${esc(C.clientLabel(state, x))} (family statement)</option>`).join('')}</select>
             <button class="btn" data-act="print">Print / Save PDF</button>
             <button class="btn ghost" data-act="copySummary">Copy as text</button>
             ${c ? `<a class="btn ghost" href="${esc(mailto(c.parentEmail, (c.name.split(' ')[0]) + "'s tutoring summary for " + label, text))}">Open in email</a>` : ''}
@@ -780,8 +781,12 @@
       if (file.size > 5 * 1024 * 1024) { toast('That file is too large to be a TutorLoop backup.'); return; }
       file.text().then(txt => {
         const next = C.importState(txt);
-        if ((state.clients.length || state.sessions.length) && !confirm(`Replace your current data with this backup (${C.plural(next.clients.length, 'student')}, ${C.plural(next.sessions.length, 'session')})?`)) return;
-        commit('Backup restored', () => { state = next; });
+        // Same rule as the Add-student form: two students with one name get mixed up on invoices. A backup
+        // can predate that rule, so nothing is dropped or renamed; the tutor is told plainly, before and after.
+        const dupWarn = C.duplicateNamesWarning(next);
+        if ((state.clients.length || state.sessions.length) && !confirm(`Replace your current data with this backup (${C.plural(next.clients.length, 'student')}, ${C.plural(next.sessions.length, 'session')})?` + (dupWarn ? '\n\n' + dupWarn : ''))) return;
+        if (dupWarn) location.hash = 'students';   // the Students page keeps the warning on screen after the toast goes
+        commit(dupWarn ? 'Backup restored. ' + dupWarn : 'Backup restored', () => { state = next; });
       }).catch(err => toast(err.message));
     }
   });

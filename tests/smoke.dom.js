@@ -23,6 +23,7 @@ const text = () => d.getElementById('app').textContent.replace(/\s+/g, ' ');
 const go = h => { w.location.hash = h; w.dispatchEvent(new w.HashChangeEvent('hashchange')); };
 const submit = f => f.dispatchEvent(new w.Event('submit', { cancelable: true, bubbles: true }));
 const saved = () => JSON.parse(w.localStorage.getItem('tutorloop.v1'));
+const C2 = () => JSON.parse(w.localStorage.getItem('tutorloop.v1'));
 let n = 0; const ok = (name, cond) => { assert.ok(cond, name); n++; console.log('✓ ' + name); };
 
 ok('empty state renders onboarding with a quick-start form', text().includes('Or set up step by step') && !!d.getElementById('quickForm'));
@@ -136,8 +137,37 @@ setTimeout(() => {
     go('invoices'); d.querySelector('#app [data-act=startOwn]').click();
     setTimeout(() => {
       ok('empty app: "Add a student" also lands on the quick-start form', w.location.hash === '#dashboard' && d.activeElement && d.activeElement.id === 'q-name');
-      ok('no uncaught errors', errors.length === 0);
-      console.log(`\n${n} DOM checks passed`);
+      // Restore a backup that has two students with one name (made before the form refused that):
+      // both are kept, the confirm and the toast say so, the Students page keeps the warning, pickers tell them apart.
+      const dupBackup = JSON.stringify({ version: 1, profile: { plan: 'pro' }, clients: [
+        { id: 'a', name: 'Maya Chen', subject: 'Algebra 1', grade: '8', rate: 25 }, { id: 'b', name: 'maya chen', subject: 'Geometry', rate: 30 }],
+        sessions: [{ id: 's1', clientId: 'a', date: '2026-10-01', minutes: 60 }, { id: 's2', clientId: 'b', date: '2026-10-02', minutes: 60 }] });
+      // load sample data first so the "replace your data?" confirm appears
+      go('settings'); d.querySelector('[data-act=demo]').click();
+      let asked = '';
+      w.confirm = m => { asked = m; return true; };
+      go('settings');
+      const inp = d.getElementById('importFile');
+      Object.defineProperty(inp, 'files', { configurable: true, get: () => [{ size: dupBackup.length, text: () => Promise.resolve(dupBackup) }] });
+      inp.dispatchEvent(new w.Event('change', { bubbles: true }));
+      setTimeout(() => {
+        ok('restoring a backup with duplicate names keeps both students and their sessions', saved().clients.length === 2 && saved().sessions.length === 2);
+        ok('the replace-data confirm warns about the duplicate names', /2 students named Maya Chen/.test(asked) && /All were kept/.test(asked));
+        ok('the restore toast says so too', /Backup restored\. This data has 2 students named Maya Chen/.test(toastBox.textContent));
+        ok('after the restore the Students page shows a lasting duplicate-name notice', w.location.hash === '#students' && !!d.getElementById('dupNote') && /add a last initial/.test(d.getElementById('dupNote').textContent));
+        go('invoices');
+        const opts = [...d.querySelectorAll('#invPick option')].map(o => o.textContent);
+        ok('the invoice picker tells the twins apart', opts.includes('Maya Chen (Algebra 1, grade 8)') && opts.includes('maya chen (Geometry)'));
+        go('students/a');
+        const cf = d.getElementById('clientForm'); cf.querySelector('[name=rate]').value = '41'; submit(cf);
+        ok('one twin can still be edited (rate) without renaming', C2().clients.find(c => c.id === 'a').rate === 41);
+        go('students/b');
+        const cf2 = d.getElementById('clientForm'); cf2.querySelector('[name=name]').value = 'Maya Chen G.'; submit(cf2);
+        go('students');
+        ok('renaming one twin clears the notice', !d.getElementById('dupNote'));
+        ok('no uncaught errors', errors.length === 0);
+        console.log(`\n${n} DOM checks passed`);
+      }, 150);
     }, 150);
   }, 150);
 }, 400);

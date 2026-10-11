@@ -480,6 +480,31 @@ console.log(JSON.stringify(s));""", str(ROOT / 'js' / 'core.js')]).decode()
         go(pg, 'dashboard')
         check('one family with a balance reads "1 family owes you"', '1 family owes you' in pg.inner_text('#app'), pg.inner_text('#app')[:400])
         ctx.close()
+
+        # restore a backup with two students of one name (made before the form refused it), at 390 px:
+        # both kept, the confirm says so, the Students page shows a lasting notice, no overflow, pickers differ
+        import tempfile, json as _json
+        dup = {'version': 1, 'profile': {'plan': 'pro'}, 'clients': [
+            {'id': 'a', 'name': 'Maya Chen', 'subject': 'Algebra 1', 'grade': '8', 'rate': 25},
+            {'id': 'b', 'name': 'maya chen', 'subject': 'Geometry', 'rate': 30}],
+            'sessions': [{'id': 's1', 'clientId': 'a', 'date': '2026-10-01', 'minutes': 60}, {'id': 's2', 'clientId': 'b', 'date': '2026-10-02', 'minutes': 60}]}
+        fd, dup_path = tempfile.mkstemp(suffix='.json'); os.write(fd, _json.dumps(dup).encode()); os.close(fd)
+        ctx = b.new_context(viewport={'width': 390, 'height': 844}); pg = ctx.new_page()
+        asked = []
+        pg.on('dialog', lambda d: (asked.append(d.message), d.accept()))
+        errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(URL); pg.wait_for_timeout(300); go(pg, 'settings'); pg.click('[data-act=demo]'); pg.wait_for_timeout(200)
+        go(pg, 'settings'); pg.set_input_files('#importFile', dup_path); pg.wait_for_timeout(400)
+        n_cl = pg.evaluate("JSON.parse(localStorage.getItem('tutorloop.v1')).clients.length")
+        check('duplicate-name backup: both students kept and the confirm warns', n_cl == 2 and any('2 students named Maya Chen' in m for m in asked), str(asked))
+        check('duplicate-name backup: lands on Students with a visible notice', pg.evaluate("location.hash") == '#students' and pg.is_visible('#dupNote'))
+        over = pg.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
+        check('duplicate-name notice at 390px: no horizontal overflow', over <= 0, f'{over}px')
+        go(pg, 'invoices')
+        opts = pg.eval_on_selector_all('#invPick option', 'os => os.map(o => o.textContent)')
+        check('duplicate-name backup: invoice picker labels differ', len(set(opts)) == len(opts) == 2, str(opts))
+        check('duplicate-name backup: no page errors', not errs, str(errs))
+        ctx.close()
         b.close()
 finally:
     srv.terminate()

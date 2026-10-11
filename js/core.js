@@ -104,6 +104,33 @@
 
   /* ---------- validation ---------- */
 
+  const normName = v => String(v || '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+  /** Students that share a name (case and spacing ignored), e.g. from a backup made before the form
+   *  refused duplicates. Returns [{ name, clients: [...] }] in roster order; empty when all names differ. */
+  function duplicateNames(state) {
+    const groups = new Map();
+    (state.clients || []).forEach(c => { const k = normName(c.name); if (!k) return; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(c); });
+    return [...groups.values()].filter(g => g.length > 1).map(g => ({ name: String(g[0].name).trim().replace(/\s+/g, ' '), clients: g }));
+  }
+
+  /** The name to show in pickers: just the name, or with subject/grade (else "#2") when another student shares it. */
+  function clientLabel(state, c) {
+    const twins = (state.clients || []).filter(x => normName(x.name) === normName(c.name));
+    if (twins.length < 2) return c.name;
+    const extra = [c.subject, c.grade ? 'grade ' + c.grade : ''].filter(Boolean).join(', ');
+    const sameExtra = extra && twins.filter(x => [x.subject, x.grade ? 'grade ' + x.grade : ''].filter(Boolean).join(', ') === extra).length > 1;
+    return c.name + ' (' + (extra && !sameExtra ? extra : '#' + (twins.indexOf(c) + 1)) + ')';
+  }
+
+  /** One plain sentence warning about duplicate names, or '' when there are none. */
+  function duplicateNamesWarning(state) {
+    const d = duplicateNames(state);
+    if (!d.length) return '';
+    const list = d.map(g => g.clients.length + ' students named ' + g.name).join('; ');
+    return 'This data has ' + list + '. All were kept, but invoices and reminders can mix them up: edit one and add a last initial.';
+  }
+
   function validateClient(c, state) {
     const errors = [];
     if (!c.name || !String(c.name).trim()) errors.push('Student name is required.');
@@ -111,8 +138,12 @@
     if (c.rate === '' || c.rate == null || isNaN(Number(c.rate)) || Number(c.rate) < 0 || Number(c.rate) > 1000) errors.push('Hourly rate must be between $0 and $1,000.');
     if (c.parentEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.parentEmail)) errors.push('Parent email looks invalid.');
     // Two students with the same name make the invoice picker, reminders and statements ambiguous.
-    const norm = v => String(v || '').trim().replace(/\s+/g, ' ').toLowerCase();
-    const dup = state && norm(c.name) && state.clients.find(x => x.id !== c.id && norm(x.name) === norm(c.name));
+    // An edit that keeps the student's own name is allowed even if a restored backup already holds a
+    // twin (imports keep both and warn), so the tutor can still fix the rate or email of either one.
+    const norm = normName;
+    const own = state && c.id ? clientById(state, c.id) : null;
+    const keepsOwnName = own && norm(own.name) === norm(c.name);
+    const dup = state && norm(c.name) && !keepsOwnName && state.clients.find(x => x.id !== c.id && norm(x.name) === norm(c.name));
     if (dup) errors.push(dup.archived
       ? 'You already have an archived student named ' + String(dup.name).trim() + '. Restore them from Students instead of adding them again.'
       : 'You already have a student named ' + String(dup.name).trim() + '. Add a last initial so invoices and reminders don\'t mix them up.');
@@ -720,7 +751,7 @@
 
   const api = {
     SCHEMA_VERSION, FREE_CLIENT_LIMIT, MAX_MINUTES, uid, emptyState, cents, money, plural, isValidDate, addDays,
-    sessionAmount, sessionDue, planPayment, applyPayment, MAX_PAYMENT, clientById, validateClient, validateSession, stats, monthlySeries, balances, lastSession,
+    sessionAmount, sessionDue, planPayment, applyPayment, MAX_PAYMENT, clientById, validateClient, validateSession, duplicateNames, duplicateNamesWarning, clientLabel, stats, monthlySeries, balances, lastSession,
     serviceProgress, rangePreset, topicList, sentiment, sentence, progressReport, reminderMessage, invoice,
     APP_URL, PAY_METHODS, guessPayMethod, paymentText, paymentSentence, referralFooter,
     csvEscape, volunteerCSV, sessionsCSV, importState, demoState, fmtDate, fmtMonth, monthKey,
