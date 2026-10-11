@@ -175,7 +175,7 @@
 
   function noStudents(title) {
     return `<h1 tabindex="-1">${title}</h1><div class="card empty"><h2>No students yet</h2><p>Add your first student, or load sample data to look around.</p>
-      <div class="actions center"><a class="btn" href="#students">Add a student</a><button class="btn ghost" data-act="demo">Load sample data</button></div></div>`;
+      <div class="actions center"><a class="btn" href="#students" data-act="startOwn">Add a student</a><button class="btn ghost" data-act="demo">Load sample data</button></div></div>`;
   }
 
   /* ---------- views ---------- */
@@ -256,7 +256,7 @@
           <section class="card"><h2>Who owes you</h2>
             ${bal.length ? `<table class="stack"><thead><tr><th scope="col">Student</th><th scope="col" class="num">Owed</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>
               ${bal.map(b => `<tr><td data-label="Student" class="who"><div><b>${esc(b.client.name)}</b><div class="muted small">${C.plural(b.unpaidSessions, 'unpaid session')} since ${esc(fd(b.oldestUnpaid))}</div></div></td>
-              <td data-label="Owed" class="num warn"><b>${C.money(b.owed)}</b></td>
+              <td data-label="Owed" class="num warn"><b>${C.money(b.owed)}</b>${b.partPaid > 0 ? `<div class="muted small part-paid">${C.money(b.partPaid)} of ${C.money(b.unpaidBilled)} paid</div>` : ''}</td>
               <td class="num row-actions"><a class="btn small ghost" href="#invoices/${esc(b.client.id)}">Invoice</a>
                 <a class="btn small ghost" href="${esc(mailto(b.client.parentEmail, 'Tutoring balance for ' + b.client.name, C.reminderMessage(state, b.client.id)))}">Remind</a>
                 <button class="btn small" data-act="markPaidAll" data-id="${esc(b.client.id)}">Mark paid</button></td></tr>`).join('')}
@@ -455,6 +455,10 @@
           <p class="muted small">"Paid" and "unpaid" show each session's status as of ${esc(C.fmtDate(today(), true))}. Volunteer sessions are not charged.</p>
           ${!c && t.volunteerSessions ? '<div class="print-only sign"><p>Sponsor signature: ______________________________ Date: ____________</p></div>' : ''}`
           : `<p class="sub">No sessions ${c ? 'with ' + esc(c.name.split(' ')[0]) + ' ' : ''}in ${esc(label)} yet.</p>`}
+          ${c && sm.payments.length ? `<section class="statement-payments" aria-labelledby="sumPayTitle"><h3 id="sumPayTitle" class="h-s">Payments received in ${esc(label)}</h3>
+            <table><thead><tr><th scope="col">Date</th><th scope="col" class="num">Amount</th></tr></thead><tbody>
+            ${sm.payments.map(x => `<tr><td>${esc(fd(x.date))}</td><td class="num">${C.money(x.amount)}</td></tr>`).join('')}</tbody>
+            ${sm.payments.length > 1 ? `<tfoot><tr><td><b>Total received</b></td><td class="num"><b>${C.money(sm.paymentsTotal)}</b></td></tr></tfoot>` : ''}</table></section>` : ''}
           ${p.referralFooter ? `<p class="muted referral">Made with TutorLoop, a free app for student tutors: <a href="${esc(C.APP_URL)}">${esc(C.APP_URL.replace(/^https:\/\//, ''))}</a></p>` : ''}
         </article>
         <textarea id="summaryText" class="sr-only" tabindex="-1" aria-hidden="true" readonly>${esc(text)}</textarea>`;
@@ -495,7 +499,7 @@
         <section class="card hero">
           <h2>Student tutors run real businesses with tools built for something else</h2>
           <p>A notes app for sessions, a Venmo feed to guess who paid, a text thread with each parent, and a paper sheet for volunteer hours. TutorLoop puts those four jobs in one free app that works in the browser, with no account and no server.</p>
-          <div class="actions"><button class="btn" data-act="demo">Try it with sample data</button><a class="btn ghost" href="#students">Start with my own students</a></div>
+          <div class="actions"><button class="btn" data-act="demo">Try it with sample data</button><a class="btn ghost" href="#students" data-act="startOwn">Start with my own students</a></div>
         </section>
 
         <h2 class="mt-l">The problem</h2>
@@ -527,9 +531,11 @@
           <table class="stack"><thead><tr><th scope="col">Plan</th><th scope="col" class="num">Price</th><th scope="col" class="num">Card + billing fees</th><th scope="col" class="num">TutorLoop keeps</th></tr></thead><tbody>
             <tr><td data-label="Plan">Free</td><td data-label="Price" class="num">$0</td><td data-label="Card + billing fees" class="num">-</td><td data-label="TutorLoop keeps" class="num">-</td></tr>
             ${row('Pro', 4, '/mo')}
+            ${row('Pro (annual)', 36, '/yr')}
             ${row('Club', 99, '/school yr')}
           </tbody></table>
-          <p class="sub mt-s">Fees use Stripe's published US rates: 2.9% + 30¢ per card payment plus 0.7% for subscription billing. The flat 30¢ hurts small monthly charges, so an annual Pro option is the obvious next pricing test.</p>
+          <p class="sub mt-s">Fees use Stripe's published US rates: 2.9% + 30¢ per card payment plus 0.7% for subscription billing. The flat 30¢ hurts small monthly charges: fees take ${Math.round(fee(4) / 4 * 100)}% of a $4 month but ${Math.round(fee(36) / 36 * 100)}% of a $36 year, so annual Pro is the first pricing test. It is not on sale yet.</p>
+          <p class="sub"><b>Who pays:</b> Free is for a tutor with up to ${C.FREE_CLIENT_LIMIT} students and costs them nothing; Pro is paid by a tutor whose side business has outgrown that; Club is paid by a school club or NHS chapter for all its tutors.</p>
           <p class="sub">Costs today: hosting is free (static files on GitHub Pages) and there is no server. Pro's sync and scheduled reminders are roadmap features; we won't charge for them until they exist.</p>
           <div class="actions"><a class="btn ghost" href="#settings">See the plans</a></div>
         </section>
@@ -825,6 +831,13 @@
         setTimeout(focusQuickStart, 60);   // after the hashchange re-render, so focus lands on the live form
         break;
       case 'focusQuick': focusQuickStart(); break;
+      case 'startOwn':
+        // With no students yet, the fastest start is the 30-second quick-start form on the dashboard; otherwise follow the link to #students.
+        if (state.clients.length) break;
+        e.preventDefault();
+        if (parseHash().route === 'dashboard') focusQuickStart();
+        else { location.hash = 'dashboard'; setTimeout(focusQuickStart, 60); }
+        break;
       case 'setMinutes': { const m = document.getElementById(el.dataset.target || 'f-minutes'); if (m) m.value = el.dataset.min; updatePreview(); break; }
       case 'togglePaid': { const s = state.sessions.find(x => x.id === id); if (s) commit(s.paid ? 'Marked unpaid' : 'Marked paid', () => { s.paid = !s.paid; }); break; }
       case 'markPaidAll': { const c = C.clientById(state, id); commit('All of ' + firstName(c && c.name) + "'s sessions marked paid", () => { state.sessions.forEach(s => { if (s.clientId === id && !s.volunteer) s.paid = true; }); }); break; }
