@@ -165,6 +165,14 @@
     return list.map(c => `<option value="${esc(c.id)}"${c.id === selected ? ' selected' : ''}>${esc(c.name)}${c.subject ? ' · ' + esc(c.subject) : ''}${c.archived ? ' (archived)' : ''}</option>`).join('');
   }
 
+  /** Move the user to the 30-second quick-start form on the empty dashboard. */
+  function focusQuickStart() {
+    const q = document.getElementById('q-name');
+    if (!q) { location.hash = 'students'; return; }
+    q.focus({ preventScroll: true });
+    if (q.scrollIntoView) q.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }
+
   function noStudents(title) {
     return `<h1 tabindex="-1">${title}</h1><div class="card empty"><h2>No students yet</h2><p>Add your first student, or load sample data to look around.</p>
       <div class="actions center"><a class="btn" href="#students">Add a student</a><button class="btn ghost" data-act="demo">Load sample data</button></div></div>`;
@@ -181,7 +189,7 @@
           <section class="card hero">
             <h2>Run your tutoring like a real business</h2>
             <p>Log a session in about 10 seconds, see who still owes you, send parents a progress update in one click, and export volunteer hours for your NHS sponsor. Free, private, and it works offline.</p>
-            <div class="actions"><button class="btn" data-act="demo">Try it with sample data</button><a class="btn ghost" href="#students">Start with my own students</a></div>
+            <div class="actions"><button class="btn" data-act="demo">Try it with sample data</button><button class="btn ghost" data-act="focusQuick">Start with my own students</button></div>
             <p class="mt-s"><a href="#about">How it works, who it's for, and pricing</a></p>
           </section>
           <form class="card quickstart" id="quickForm" novalidate aria-labelledby="qs-title">
@@ -463,7 +471,7 @@
 
     about() {
       // Competitor list prices, copied from the vendors' own pricing pages (monthly billing, USD) on CMP.checked.
-      const CMP = { checked: 'Oct 10, 2026', lessons: 8,
+      const CMP = { checked: 'Oct 10, 2026', checkedMarket: 'Oct 11, 2026', lessons: 8,
         tutorbird: { base: 16.95, perTutor: 4.95 },      // https://www.tutorbird.com/pricing/
         teachworks: { base: 16.49, perLesson: 0.32 } };  // https://teachworks.com/pricing (Starter: $16.49/mo + $0.320 per student lesson)
       // Founder pitch / landing page. Every number here is either a list price, a published fee,
@@ -515,6 +523,25 @@
           <p class="sub">Costs today: hosting is free (static files on GitHub Pages) and there is no server. Pro's sync and scheduled reminders are roadmap features; we won't charge for them until they exist.</p>
           <div class="actions"><a class="btn ghost" href="#settings">See the plans</a></div>
         </section>
+
+        <h2 class="mt-l" id="market">Who pays, and how we reach them</h2>
+        <p class="sub">The paying customer we can reach first isn't the individual tutor. It's the adult who has to collect every tutor's hours.</p>
+        <div class="grid two">
+          <section class="card"><h3>The channel: NHS chapters</h3>
+            <ul><li>The National Honor Society has <b>17,000+ chapters</b> serving more than <b>1.4 million</b> students.</li>
+              <li>The average chapter contributes about <b>1,000 hours</b> of service a year, and membership is based on four pillars, one of which is service. Someone has to collect and check those hours.</li>
+              <li>One Club plan covers up to 50 tutors, so one adviser saying yes brings a whole chapter.</li></ul>
+            <p class="sub small">Sources: <a href="https://www.nationalhonorsociety.org/about/" target="_blank" rel="noopener">NHS: About</a> and <a href="https://en.wikipedia.org/wiki/National_Honor_Society" target="_blank" rel="noopener">Wikipedia</a> (citing NHS's own history page). Checked ${CMP.checkedMarket}.</p></section>
+          <section class="card"><h3>The math, honestly</h3>
+            <ul><li><b>Ceiling, not a forecast:</b> if every chapter paid for Club, that's 17,000 × ${C.money(99 - fee(99))} kept ≈ <b>$${(17000 * (99 - fee(99)) / 1e6).toFixed(1)} million</b> a year.</li>
+              <li><b>Costs today: $0 a month.</b> Free static hosting and no server, so each free tutor costs us about nothing to serve.</li>
+              <li><b>First real cost</b> is a sync server for Pro. We only build it once paying users ask for it, so revenue arrives before that cost does.</li></ul></section>
+        </div>
+        <section class="card mt-s"><h3>Go-to-market, in order</h3>
+          <ol><li><b>Seed:</b> NHS and math-club tutors at our own school and nearby Fort Bend ISD schools; demo at a chapter meeting.</li>
+            <li><b>Sponsor wedge:</b> one NHS adviser gets a free semester of Club in exchange for feedback. Their pain (collecting and checking hours) is what drives a chapter-wide rollout.</li>
+            <li><b>Built-in word of mouth:</b> tutors can switch on an opt-in "Sent with TutorLoop" line, so every parent update and invoice carries a link (no tracking).</li>
+            <li><b>Annual Pro test:</b> card and billing fees take ${Math.round(fee(4) / 4 * 100)}% of a $4 monthly charge (mostly the flat 30¢), so an annual Pro price is the first pricing experiment.</li></ol></section>
 
         <h2 class="mt-l" id="compare">How it compares</h2>
         <p class="sub">Tutoring software exists, but it is priced for tutoring businesses. Here is what a student with a few families would pay, using each company's own published monthly price.</p>
@@ -631,6 +658,11 @@
     const key = route + '/' + params.join('/');
     const routeChanged = key !== lastRoute;
     $app.innerHTML = views[route](params);
+    if (state.sample && route !== 'about') {
+      // Without this, someone who tapped "Try it with sample data" had no obvious way back to a clean start (it was buried in Settings > Erase all data).
+      $app.insertAdjacentHTML('afterbegin', `<div class="samplebar no-print" role="note"><p><b>You're exploring sample data.</b> Maya, Ethan, and Sofia are made-up students. Nothing here is real.</p>
+        <button class="btn small" data-act="startFresh">Start fresh with my own students</button></div>`);
+    }
     document.querySelectorAll('#nav a').forEach(a => {
       const on = a.getAttribute('href') === '#' + route;
       a.classList.toggle('active', on);
@@ -769,6 +801,12 @@
         location.hash = 'dashboard';
         commit('Sample data loaded', () => { state = C.demoState(today()); });
         break;
+      case 'startFresh':
+        location.hash = 'dashboard';
+        commit('Sample data cleared. Log your first real session below.', () => { state = C.emptyState(); });
+        setTimeout(focusQuickStart, 60);   // after the hashchange re-render, so focus lands on the live form
+        break;
+      case 'focusQuick': focusQuickStart(); break;
       case 'setMinutes': { const m = document.getElementById(el.dataset.target || 'f-minutes'); if (m) m.value = el.dataset.min; updatePreview(); break; }
       case 'togglePaid': { const s = state.sessions.find(x => x.id === id); if (s) commit(s.paid ? 'Marked unpaid' : 'Marked paid', () => { s.paid = !s.paid; }); break; }
       case 'markPaidAll': { const c = C.clientById(state, id); commit('All of ' + firstName(c && c.name) + "'s sessions marked paid", () => { state.sessions.forEach(s => { if (s.clientId === id && !s.volunteer) s.paid = true; }); }); break; }
