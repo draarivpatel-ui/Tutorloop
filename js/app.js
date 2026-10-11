@@ -342,8 +342,9 @@
         <div class="grid two">
           <form class="card" id="clientForm" data-id="${editing ? esc(editing.id) : ''}" novalidate>
             <h2>${editing ? 'Edit ' + esc(editing.name) : 'Add a student'}</h2>
-            ${atLimit ? `<p class="notice">You're at the Free plan limit. Archive a student you no longer tutor, or <a href="#settings">see plans</a>.</p>` : ''}
+            ${atLimit ? `<p class="notice" id="limitNote"><b>The Free plan holds ${C.FREE_CLIENT_LIMIT} active students, so adding is paused.</b> Archive a student you no longer tutor (Edit, then Archive) to free a spot, or <a href="#settings">see plans</a> for unlimited students.</p>` : ''}
             <div class="form-errors" tabindex="-1" role="alert"></div>
+            <fieldset class="bare"${atLimit ? ' disabled aria-describedby="limitNote"' : ''}>
             <div class="row"><div><label for="c-name">Student name</label><input id="c-name" name="name" maxlength="80" autocomplete="off" value="${esc(c.name)}" required></div>
               <div><label for="c-grade">Grade <span class="opt">(optional)</span></label><input id="c-grade" name="grade" maxlength="20" value="${esc(c.grade)}"></div></div>
             <div class="row"><div><label for="c-subject">Subject</label><input id="c-subject" name="subject" maxlength="80" placeholder="Algebra 1" value="${esc(c.subject)}"></div>
@@ -353,6 +354,7 @@
             <label class="check"><input type="checkbox" name="volunteerDefault" ${c.volunteerDefault ? 'checked' : ''}> Volunteer student (sessions default to service hours)</label>
             <div class="actions"><button class="btn" type="submit">${editing ? 'Save' : 'Add student'}</button>
               ${editing ? `<a class="btn ghost" href="#students">Cancel</a>${editing.archived ? '' : `<button type="button" class="btn danger" data-act="archiveClient" data-id="${esc(editing.id)}">Archive</button>`}` : ''}</div>
+            </fieldset>
           </form>
           <section class="card"><h2>Roster</h2>
             ${active.length ? `<table class="stack"><thead><tr><th scope="col">Student</th><th scope="col" class="num">Rate</th><th scope="col" class="num">Owed</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>
@@ -674,6 +676,7 @@
       g.fillStyle = i === data.length - 1 ? col('--brand') : col('--brand-soft');
       g.beginPath(); if (g.roundRect) g.roundRect(x, y, bw * 0.6, bh, [6, 6, 0, 0]); else g.rect(x, y, bw * 0.6, bh); g.fill();
       if (d.earned > 0) { g.fillStyle = col('--ink'); g.fillText('$' + Math.round(d.earned).toLocaleString('en-US'), x + bw * 0.3, y - 6); }
+      else { g.fillStyle = col('--muted'); g.fillText('$0', x + bw * 0.3, h - 37); }  // an empty month reads as "nothing earned", not as a missing bar
       g.fillStyle = col('--muted');
       g.fillText(C.fmtMonth(d.month, 'short'), x + bw * 0.3, h - 10);
     });
@@ -692,7 +695,7 @@
     $app.innerHTML = views[route](params);
     if (state.sample && route !== 'about') {
       // Without this, someone who tapped "Try it with sample data" had no obvious way back to a clean start (it was buried in Settings > Erase all data).
-      $app.insertAdjacentHTML('afterbegin', `<div class="samplebar no-print" role="note"><p><b>You're exploring sample data.</b> Maya, Ethan, and Sofia are made-up students. Nothing here is real.</p>
+      $app.insertAdjacentHTML('afterbegin', `<div class="samplebar no-print" role="note"><p><b>You're exploring sample data.</b> Maya, Ethan, and Sofia are made-up students. Nothing here is real, and their parents' emails are example.com addresses, so Remind and Open in email open your mail app with a made-up recipient.</p>
         <button class="btn small" data-act="startFresh">Start fresh with my own students</button></div>`);
     }
     document.querySelectorAll('#nav a').forEach(a => {

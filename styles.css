@@ -38,6 +38,8 @@ h3 { font-size: 17px; margin: 0 0 6px; }
 .muted { color: var(--muted); }
 .opt { font-weight: 400; color: var(--muted); }
 .help { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+fieldset.bare { border: 0; padding: 0; margin: 0; min-width: 0; }
+fieldset.bare:disabled input, fieldset.bare:disabled .btn { opacity: .6; cursor: not-allowed; }
 .notice { background: var(--brand-tint); border: 1px solid #c7d2fe; padding: 8px 12px; border-radius: 9px; }
 .mt { margin-top: 16px; } .mt-s { margin-top: 8px; } .mt-l { margin-top: 28px; }
 .flush { margin: 0; } .right { text-align: right; }
