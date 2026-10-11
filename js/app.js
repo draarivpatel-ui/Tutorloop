@@ -34,20 +34,20 @@
   }
 
   /** Snapshot-based undo for any change. */
-  function commit(msg, mutate) {
+  function commit(msg, mutate, returnSel) {
     const before = JSON.stringify(state);
     mutate();
     save();
     render();
-    lastUndo = () => { lastUndo = null; state = C.importState(before); save(); render(); toast('Undone'); };
-    toast(msg, lastUndo);
+    lastUndo = () => { lastUndo = null; state = C.importState(before); save(); render(); toast('Undone', null, returnSel); };
+    toast(msg, lastUndo, returnSel);
   }
   let lastUndo = null;
 
   // Ctrl/Cmd+Z undoes the last change when you're not typing in a field.
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && lastUndo && !e.target.closest('input, textarea, select, [contenteditable]')) {
-      e.preventDefault(); hideToast(); lastUndo();
+      e.preventDefault(); const back = toastHasFocus(); hideToast(true); lastUndo(); if (back) toastReturnFocus();
     }
   });
 
@@ -82,23 +82,38 @@
   let toastTimer, toastFade, toastLeft = 0, toastStart = 0, toastGen = 0;
   function toastEl() { return document.getElementById('toast'); }
   function armToast(ms) { clearTimeout(toastTimer); toastLeft = ms; toastStart = Date.now(); toastTimer = setTimeout(hideToast, ms); }
-  function hideToast() {
+  // Keyboard users who Tab into the toast must not be dropped on <body> when it closes (Escape, ×, Undo):
+  // focus goes back to where they came from (returnSel from the caller, else the element they tabbed in
+  // from, else the page heading). Elements are re-rendered, so the selector is looked up afresh.
+  let toastReturnSel = null, toastReturnEl = null;
+  const toastHasFocus = () => { const t = toastEl(); return !!(t && t.contains(document.activeElement)); };
+  function toastReturnFocus() {
+    let el = toastReturnSel && document.querySelector(toastReturnSel);
+    if (!el && toastReturnEl && toastReturnEl.isConnected) el = toastReturnEl;
+    if (!el) el = document.querySelector('#app h1') || $app;
+    if (el) el.focus({ preventScroll: true });
+  }
+  function hideToast(keepFocus) {
     const t = toastEl(); if (!t) return;
+    if (keepFocus !== true && toastHasFocus()) toastReturnFocus();
     clearTimeout(toastTimer); clearTimeout(toastFade);
     t.classList.remove('show');
     const gen = toastGen;
     toastFade = setTimeout(() => { if (gen === toastGen) { t.hidden = true; t.innerHTML = ''; } }, 250);
   }
-  function toast(msg, undo) {
+  function toast(msg, undo, returnSel) {
     const t = toastEl(); if (!t) return;
+    const back = toastHasFocus();
     toastGen++; clearTimeout(toastFade);
+    toastReturnSel = returnSel || null; toastReturnEl = null;
     t.innerHTML = '<span class="toast-msg">' + esc(msg) + '</span>' + (undo ? '<button type="button" class="toast-undo">Undo</button>' : '') +
       '<button type="button" class="toast-close" aria-label="Dismiss notification">&times;</button>';
     t.hidden = false;
     void t.offsetWidth;   // let the fade-in transition run after un-hiding
     t.classList.add('show');
-    if (undo) t.querySelector('.toast-undo').addEventListener('click', () => { hideToast(); if (undo === lastUndo) undo(); }, { once: true });
+    if (undo) t.querySelector('.toast-undo').addEventListener('click', () => { const b = toastHasFocus(); hideToast(true); if (undo === lastUndo) undo(); if (b) toastReturnFocus(); }, { once: true });
     t.querySelector('.toast-close').addEventListener('click', hideToast, { once: true });
+    if (back) toastReturnFocus();   // the focused button was just replaced
     armToast(undo ? TOAST_MS.undo : TOAST_MS.plain);
   }
   (function wireToast() {
@@ -106,6 +121,7 @@
     const pause = () => { if (!t.classList.contains('show')) return; clearTimeout(toastTimer); toastLeft = Math.max(0, toastLeft - (Date.now() - toastStart)); };
     const resume = () => { if (t.classList.contains('show') && !t.matches(':hover') && !t.contains(document.activeElement)) armToast(Math.max(toastLeft, 2000)); };
     t.addEventListener('mouseenter', pause); t.addEventListener('focusin', pause);
+    t.addEventListener('focusin', e => { if (e.relatedTarget && !t.contains(e.relatedTarget)) toastReturnEl = e.relatedTarget; });
     t.addEventListener('mouseleave', resume); t.addEventListener('focusout', () => setTimeout(resume, 0));
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && t.classList.contains('show')) hideToast(); });
   })();
@@ -390,8 +406,8 @@
           ${inv.items.length ? `<form id="payForm" class="card pay-form" data-id="${esc(id)}" novalidate aria-labelledby="payTitle">
             <h2 id="payTitle" class="flush">Record a payment</h2>
             <p class="sub">Got part of the money? Enter it and it covers the oldest sessions first. Sessions it fully covers turn paid; the rest is kept as a part payment.</p>
-            <div class="form-errors" tabindex="-1" role="alert"></div>
-            <div class="row pay-row"><div><label for="pay-amount">Amount received ($)</label><input id="pay-amount" name="amount" type="number" inputmode="decimal" step="0.01" min="0.01" max="${C.MAX_PAYMENT}" placeholder="e.g. 20.00" autocomplete="off"></div>
+            <div class="form-errors" id="pay-errors" tabindex="-1" role="alert"></div>
+            <div class="row pay-row"><div><label for="pay-amount">Amount received ($)</label><input id="pay-amount" name="amount" aria-describedby="pay-errors" type="number" inputmode="decimal" step="0.01" min="0.01" max="${C.MAX_PAYMENT}" placeholder="e.g. 20.00" autocomplete="off"></div>
             <div><button class="btn" type="submit">Record payment</button></div></div>
             <p class="muted small">Balance now ${C.money(inv.total)}. Venmo, Zelle or cash: whatever they sent.</p></form>` : ''}
           ${paysFor(id).length ? `<details class="pay-history no-print"><summary>Payments recorded for ${esc(inv.client.name)} (${paysFor(id).length})</summary>
@@ -664,7 +680,7 @@
   }
 
   /* ---------- router ---------- */
-  let lastRoute = null;
+  let lastRoute = null, refocusId = null;   // refocusId: keep focus on a picker that changed the route (arrow keys on a <select>)
   function parseHash() {
     const [route, ...params] = (location.hash.slice(1) || 'dashboard').split('/').map(p => { try { return decodeURIComponent(p); } catch (e) { return p; } });
     return { route: views[route] ? route : 'dashboard', params };
@@ -690,7 +706,9 @@
     if (route === 'reports') generateReport();
     if (routeChanged) {
       window.scrollTo(0, 0);
-      if (lastRoute !== null) { const h1 = document.querySelector('#app h1'); if (h1) h1.focus({ preventScroll: true }); }
+      const keep = refocusId && document.getElementById(refocusId); refocusId = null;
+      if (keep) keep.focus({ preventScroll: true });
+      else if (lastRoute !== null) { const h1 = document.querySelector('#app h1'); if (h1) h1.focus({ preventScroll: true }); }
       const act = document.querySelector('#nav a.active'); if (act && act.scrollIntoView && window.innerWidth < 720) act.scrollIntoView({ block: 'nearest', inline: 'center' });
     }
     lastRoute = key;
@@ -743,7 +761,7 @@
       const top = document.getElementById('f-topics'); if (top) top.placeholder = last && last.topics ? 'Last time: ' + last.topics : 'e.g. systems of equations, word problems';
       updatePreview();
     }
-    if (t.id === 'invPick') location.hash = 'invoices/' + encodeURIComponent(t.value);
+    if (t.id === 'invPick') { refocusId = 'invPick'; location.hash = 'invoices/' + encodeURIComponent(t.value); }
     if (t.id === 'sumMonth' || t.id === 'sumWho') {
       const mo = document.getElementById('sumMonth').value, who = document.getElementById('sumWho').value;
       location.hash = 'summary/' + encodeURIComponent(mo) + (who ? '/' + encodeURIComponent(who) : '');
@@ -778,10 +796,11 @@
     }
     if (f.id === 'payForm') {
       const plan = C.planPayment(state, f.dataset.id, d.amount);
-      if (!plan.ok) return showErrors(f, [plan.error]);
+      if (!plan.ok) { const a = document.getElementById('pay-amount'); if (a) a.setAttribute('aria-invalid', 'true'); return showErrors(f, [plan.error]); }
       const who = firstName((C.clientById(state, f.dataset.id) || {}).name);
-      commit(C.money(plan.amount) + ' recorded for ' + who + (plan.owedAfter > 0 ? '. ' + C.money(plan.owedAfter) + ' still owed.' : '. All paid up.'), () => { C.applyPayment(state, f.dataset.id, plan, today()); });
-      const field = document.getElementById('pay-amount'); if (field) field.focus();
+      commit(C.money(plan.amount) + ' recorded for ' + who + (plan.owedAfter > 0 ? '. ' + C.money(plan.owedAfter) + ' still owed.' : '. All paid up.'), () => { C.applyPayment(state, f.dataset.id, plan, today()); }, '#pay-amount');
+      // Paid in full removes the form; don't drop keyboard focus on <body>.
+      const field = document.getElementById('pay-amount') || document.querySelector('#app h1'); if (field) field.focus();
       return;
     }
     if (f.id === 'clientForm') {
