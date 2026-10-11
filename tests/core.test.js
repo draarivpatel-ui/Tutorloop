@@ -157,6 +157,74 @@ test('payment reminder lists unpaid sessions and total, empty when nothing owed'
   assert.strictEqual(C.reminderMessage(demo(), 'c_sofia'), '');
 });
 
+/* payment wording */
+test('reminder and parent update name the payment app, never "pay by @handle"', () => {
+  const st = demo();
+  const r = C.reminderMessage(st, 'c_ethan');
+  assert.ok(r.includes('You can pay with Venmo @aariv-tutoring.'), r);
+  assert.ok(!/pay by @/.test(r));
+  const u = C.progressReport(st, 'c_ethan');
+  assert.ok(u.includes('You can pay with Venmo @aariv-tutoring.'), u);
+  assert.ok(!/pay by @/.test(u));
+});
+test('payment app label is configurable', () => {
+  assert.strictEqual(C.paymentText({ venmo: 'aariv@example.com', payMethod: 'Zelle' }), 'Zelle aariv@example.com');
+  assert.strictEqual(C.paymentText({ venmo: '@x', payMethod: 'PayPal' }), 'PayPal @x');
+  const st = demo(); st.profile.payMethod = 'Cash App'; st.profile.venmo = '$aariv';
+  assert.ok(C.reminderMessage(st, 'c_ethan').includes('You can pay with Cash App $aariv.'));
+});
+test('blank payment app falls back to a sensible guess from the handle', () => {
+  assert.strictEqual(C.paymentText({ venmo: '@aariv-tutoring' }), 'Venmo @aariv-tutoring');
+  assert.strictEqual(C.paymentText({ venmo: '$aariv' }), 'Cash App $aariv');
+  assert.strictEqual(C.paymentText({ venmo: 'tutor@example.com' }), 'Zelle tutor@example.com');
+  assert.strictEqual(C.paymentText({ venmo: '(555) 123-4567' }), 'Zelle (555) 123-4567');
+  assert.strictEqual(C.paymentText({ venmo: 'paypal.me/aariv' }), 'paypal.me/aariv', 'already names PayPal');
+  assert.strictEqual(C.paymentSentence({ venmo: 'paypal.me/aariv' }), 'You can pay with paypal.me/aariv.');
+  assert.strictEqual(C.paymentText({ venmo: 'cash at the session' }), 'cash at the session');
+  assert.strictEqual(C.paymentText({ venmo: '' }), '');
+  assert.strictEqual(C.paymentSentence({ venmo: '  ' }), '');
+});
+test('a handle that already names its app is not double-labelled', () => {
+  assert.strictEqual(C.paymentText({ venmo: 'Zelle: tutor@example.com', payMethod: 'Venmo' }), 'Zelle: tutor@example.com');
+  assert.strictEqual(C.paymentText({ venmo: 'Venmo @a', payMethod: 'Venmo' }), 'Venmo @a');
+  assert.strictEqual(C.paymentSentence({ venmo: 'cash at the session' }), 'Payment: cash at the session.');
+});
+test('no handle means no payment line in either message', () => {
+  const st = demo(); st.profile.venmo = '';
+  assert.ok(!/pay with/i.test(C.reminderMessage(st, 'c_ethan')));
+  assert.ok(!/pay with/i.test(C.progressReport(st, 'c_ethan')));
+});
+
+/* referral footer */
+test('"Sent with TutorLoop" footer is off by default and in demo data', () => {
+  assert.strictEqual(C.emptyState().profile.referralFooter, false);
+  const st = demo();
+  assert.ok(!C.reminderMessage(st, 'c_ethan').includes('Sent with TutorLoop'));
+  assert.ok(!C.progressReport(st, 'c_maya').includes('Sent with TutorLoop'));
+  assert.strictEqual(C.referralFooter(st.profile), '');
+});
+test('footer, when switched on, ends reminders and parent updates with a plain link', () => {
+  const st = demo(); st.profile.referralFooter = true;
+  const line = 'Sent with TutorLoop, a free app for student tutors: https://aariv.me/Tutorloop/';
+  for (const msg of [C.reminderMessage(st, 'c_ethan'), C.progressReport(st, 'c_maya'), C.progressReport(st, 'c_sofia')]) {
+    assert.ok(msg.endsWith('\n\n--\n' + line), msg.slice(-120));
+    assert.ok(!/[?&](ref|utm_)/.test(msg), 'no tracking parameters');
+  }
+  assert.strictEqual(C.reminderMessage(st, 'c_sofia'), '', 'still empty when nothing is owed');
+});
+test('backup import keeps payment app and footer choice, and sanitises them', () => {
+  const st = demo(); st.profile.payMethod = 'Zelle'; st.profile.referralFooter = true;
+  const back = C.importState(JSON.stringify(st));
+  assert.strictEqual(back.profile.payMethod, 'Zelle');
+  assert.strictEqual(back.profile.referralFooter, true);
+  const weird = C.importState({ profile: { payMethod: 'x'.repeat(99), referralFooter: 'yes' }, clients: [], sessions: [] });
+  assert.strictEqual(weird.profile.payMethod.length, 30);
+  assert.strictEqual(weird.profile.referralFooter, false, 'only a real true turns it on');
+  const old = C.importState({ profile: { venmo: '@old' }, clients: [], sessions: [] });
+  assert.strictEqual(old.profile.payMethod, '');
+  assert.strictEqual(C.paymentText(old.profile), 'Venmo @old', 'old backups keep working');
+});
+
 /* invoices & CSV */
 test('invoice totals unpaid non-volunteer sessions only, with a stable number', () => {
   const s = demo();
