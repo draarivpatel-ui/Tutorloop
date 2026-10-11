@@ -351,6 +351,54 @@ console.log(JSON.stringify(s));""", str(ROOT / 'js' / 'core.js')]).decode()
         check('no console errors in the empty-app routing checks', not em_console, em_console)
         ctx.close()
 
+        # keyboard-only pass of "Record a payment" on a phone and a laptop: focus order, errors announced in a
+        # live region and linked to the field, no traps, Escape/Undo on the toast return focus, and focus never lands on <body>
+        AE = "(() => { const e = document.activeElement; return e ? (e.id || e.className || e.tagName) : ''; })()"
+        owed_ethan = "TutorCore.balances(JSON.parse(localStorage.getItem('tutorloop.v1'))).find(b => b.client.id === 'c_ethan').owed"
+        for w in (390, 1280):
+            ctx = b.new_context(viewport={'width': w, 'height': 844}); pg = ctx.new_page()
+            kb_console = []
+            pg.on('console', lambda m: m.type == 'error' and kb_console.append(m.text)); pg.on('pageerror', lambda e: kb_console.append(str(e)))
+            pg.on('dialog', lambda d: d.accept())
+            pg.goto(URL); pg.wait_for_timeout(300); pg.click('#app [data-act=demo]'); pg.wait_for_timeout(300)
+            pg.evaluate("location.hash = 'invoices/c_ethan'"); pg.wait_for_timeout(300)
+            order = []
+            for _ in range(6):
+                pg.keyboard.press('Tab'); order.append(pg.evaluate("(() => { const e = document.activeElement; return e.id || e.textContent.trim(); })()"))
+            check(f'kbd {w}px: Tab order is student, Print, Email reminder, Mark all paid, amount, Record payment',
+                  order == ['invPick', 'Print / Save PDF', 'Email reminder', 'Mark all paid', 'pay-amount', 'Record payment'], order)
+            pg.keyboard.press('Shift+Tab'); pg.keyboard.type('-3'); pg.keyboard.press('Enter'); pg.wait_for_timeout(150)
+            err = pg.evaluate("(() => { const b = document.querySelector('#payForm .form-errors'), a = document.getElementById('pay-amount'); return [b.getAttribute('role') || b.getAttribute('aria-live'), b.textContent, document.activeElement === b, a.getAttribute('aria-invalid'), a.getAttribute('aria-describedby') === b.id]; })()")
+            check(f'kbd {w}px: a bad amount is announced in a live region, focused, and linked to the field',
+                  err[0] in ('alert', 'assertive') and 'greater than $0' in err[1] and err[2] and err[3] == 'true' and err[4], err)
+            pg.keyboard.press('Tab'); a1 = pg.evaluate(AE); pg.keyboard.press('Shift+Tab'); a2 = pg.evaluate(AE)
+            pg.focus('#pay-amount'); pg.keyboard.press('Tab'); pg.keyboard.press('Tab'); a3 = pg.evaluate("!!document.activeElement.closest('#payForm')")
+            check(f'kbd {w}px: no keyboard trap after an error (Tab, Shift+Tab, and Tab out of the form all work)', a1 == 'pay-amount' and a2 != 'pay-amount' and a2 != 'pay-errors' and not a3, (a1, a2, a3))
+            before = pg.evaluate(owed_ethan)
+            pg.focus('#pay-amount'); pg.fill('#pay-amount', ''); pg.keyboard.type('5'); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+            t = pg.evaluate("(() => { const t = document.getElementById('toast'); return [t.getAttribute('role'), t.getAttribute('aria-live'), t.textContent]; })()")
+            check(f'kbd {w}px: Enter records the payment, the result is announced (role=status, polite), focus stays on the amount',
+                  t[0] == 'status' and t[1] == 'polite' and '$5.00 recorded for Ethan' in t[2] and pg.evaluate(AE) == 'pay-amount', (t, pg.evaluate(AE)))
+            n = 0
+            while pg.evaluate(AE) != 'toast-undo' and n < 30: pg.keyboard.press('Tab'); n += 1
+            pg.keyboard.press('Escape'); pg.wait_for_timeout(350)
+            check(f'kbd {w}px: Escape closes the toast and returns focus to the amount field (not <body>)',
+                  pg.evaluate("document.getElementById('toast').hidden") and pg.evaluate(AE) == 'pay-amount', pg.evaluate(AE))
+            pg.focus('#pay-amount'); pg.keyboard.type('1'); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+            n = 0
+            while pg.evaluate(AE) != 'toast-undo' and n < 30: pg.keyboard.press('Tab'); n += 1
+            pg.keyboard.press('Enter'); pg.wait_for_timeout(350)
+            check(f'kbd {w}px: Undo from the keyboard takes the payment back and returns focus to the amount field',
+                  pg.evaluate(AE) == 'pay-amount' and abs(pg.evaluate(owed_ethan) - (before - 5)) < 0.001, (pg.evaluate(AE), pg.evaluate(owed_ethan)))
+            pg.focus('#pay-amount'); pg.keyboard.type(str(pg.evaluate(owed_ethan))); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+            check(f'kbd {w}px: paying in full removes the form and moves focus to the page heading, not <body>',
+                  pg.locator('#payForm').count() == 0 and pg.evaluate("document.activeElement.tagName") == 'H1', pg.evaluate("document.activeElement.tagName"))
+            pg.evaluate("location.hash = 'invoices/c_maya'"); pg.wait_for_timeout(300); pg.focus('#invPick'); pg.keyboard.press('ArrowDown'); pg.wait_for_timeout(300)
+            check(f'kbd {w}px: arrowing the student picker switches invoice and keeps focus on the picker',
+                  pg.evaluate("location.hash") != '#invoices/c_maya' and pg.evaluate(AE) == 'invPick', (pg.evaluate("location.hash"), pg.evaluate(AE)))
+            check(f'kbd {w}px: no console errors in the keyboard payment pass', not kb_console, kb_console)
+            ctx.close()
+
         # layout + accessibility on every page, desktop and phone
         axe = AXE_PATH.read_text() if AXE_PATH.exists() else None
         for vp_name, vp in [('desk', {'width': 1280, 'height': 900}), ('mob', {'width': 390, 'height': 844})]:
