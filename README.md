@@ -75,7 +75,7 @@ The result is **$0 per report, no student data sent to a third party, and it wor
 | DOM smoke (30 checks, jsdom) | `npm i && npm run test:dom` | Every route renders, quick start and first-run card, toast close/Escape/removal, monthly summary, plan usage, forms, plan limit, **XSS escaping**, persistence, undo, bad URLs, pitch-page honesty and fee math |
 | End-to-end (96 checks, real headless Chromium, app served from a `/Tutorloop/` sub-path like production) | `pip install playwright && python -m playwright install chromium && python tests/e2e.py` | Real clicks with native form behaviour, the first-run quick start, toast auto-dismiss (and hover pause, close, Escape), the monthly summary, decimal rates, XSS, undo (button and Ctrl+Z), CSV download, plan limit, archive/restore/delete, report presets and editing, backup round trip, corrupt-storage recovery, keyboard focus and skip link, **offline reload through the service worker**, **service worker scope, manifest paths and cache isolation on a shared origin**, payment-app setting and footer opt-in/out, sourced competitor prices on the pitch page, no console errors, **axe-core WCAG 2.1 AA: 0 violations on all 9 pages plus the empty and first-run dashboards**, **no horizontal overflow at 1280px and 390px**, and print stylesheets |
 
-All three suites were re-run on Oct 11, 2026: **50/50 unit, 30/30 DOM, 96/96 end-to-end passing**.
+All three suites were re-run on Oct 11, 2026: **51/51 unit, 30/30 DOM, 106/106 end-to-end passing**.
 
 `docs/REVIEW_LOG.md` records the review loop used to harden the app: the problems found in each iteration and how each was fixed.
 
