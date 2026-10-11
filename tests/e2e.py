@@ -297,6 +297,13 @@ console.log(JSON.stringify(s));""", str(ROOT / 'js' / 'core.js')]).decode()
         check('a $12.34 payment lowers the balance by exactly $12.34', abs((before - after) - 12.34) < 0.001, (before, after))
         check('the part-paid line and payment history show on the invoice', 'already paid' in pg.inner_text('.invoice-doc') and pg.locator('.pay-history').count() == 1)
         check('focus returns to the amount field for the next payment', pg.evaluate("document.activeElement && document.activeElement.id") == 'pay-amount')
+        go(pg, 'dashboard'); pg.wait_for_timeout(150)
+        pp = pg.eval_on_selector_all('.part-paid', 'els => els.map(e => e.textContent)')
+        check('dashboard "Who owes you" shows the part-paid state ($12.34 of $90.00 paid)', '$12.34 of $90.00 paid' in pp, pp)
+        mon = pg.evaluate("JSON.parse(localStorage.getItem('tutorloop.v1')).payments.slice(-1)[0].date.slice(0, 7)")
+        go(pg, f'summary/{mon}/c_ethan'); pg.wait_for_timeout(150)
+        sec = pg.inner_text('.statement-payments') if pg.locator('.statement-payments').count() else ''
+        check('family statement has a Payments section with the $12.34 received this month', 'Payments received in' in sec and '$12.34' in sec, sec)
         pg.click('.toast-undo'); pg.wait_for_timeout(300)
         back = pg.evaluate("TutorCore.balances(JSON.parse(localStorage.getItem('tutorloop.v1'))).find(b => b.client.id === 'c_ethan').owed")
         check('Undo restores the balance', abs(back - before) < 0.001, (before, back))
@@ -324,7 +331,24 @@ console.log(JSON.stringify(s));""", str(ROOT / 'js' / 'core.js')]).decode()
         mk = pg.inner_text('#app')
         check('pitch page sizes the NHS channel with sources and an honest ceiling', '17,000+ chapters' in mk and '$1.6 million' in mk and 'Ceiling, not a forecast' in mk and 'nationalhonorsociety.org/about' in pg.inner_html('#app'), mk[:200])
         check('pitch page lays out go-to-market in order', 'Sponsor wedge' in mk and 'Go-to-market, in order' in mk)
+        check('Business model table has an Annual Pro row ($36.00/yr, $1.60 fees, $34.40 kept) and a who-pays note',
+              pg.locator('tr', has_text='Pro (annual)').count() == 1 and '$36.00/yr' in mk and '$34.40 (96%)' in mk and 'Who pays:' in mk and 'No paying customers yet' in mk, mk[:300])
         check('no console errors in first-run, toast, and summary flows', not qs_console, qs_console)
+        ctx.close()
+
+        # empty app: the Why page "Start with my own students" and the empty-page "Add a student" go to the quick-start form
+        ctx = b.new_context(viewport={'width': 390, 'height': 844}); pg = ctx.new_page()
+        em_console = []
+        pg.on('console', lambda m: m.type == 'error' and em_console.append(m.text)); pg.on('pageerror', lambda e: em_console.append(str(e)))
+        pg.goto(URL + '#about'); pg.wait_for_timeout(400)
+        pg.click('#app [data-act=startOwn]'); pg.wait_for_timeout(400)
+        check('empty app: Why page "Start with my own students" lands on the dashboard quick-start form', pg.evaluate("[location.hash, document.activeElement.id]") == ['#dashboard', 'q-name'], pg.evaluate("[location.hash, document.activeElement.id]"))
+        go(pg, 'reports'); pg.click('#app [data-act=startOwn]'); pg.wait_for_timeout(400)
+        check('empty app: "Add a student" on an empty page lands on the quick-start form', pg.evaluate("[location.hash, document.activeElement.id]") == ['#dashboard', 'q-name'], pg.evaluate("[location.hash, document.activeElement.id]"))
+        pg.click('#app [data-act=demo]'); pg.wait_for_timeout(300); go(pg, 'about')
+        pg.click('#app [data-act=startOwn]'); pg.wait_for_timeout(300)
+        check('with students, "Start with my own students" still opens #students', pg.evaluate("location.hash") == '#students')
+        check('no console errors in the empty-app routing checks', not em_console, em_console)
         ctx.close()
 
         # layout + accessibility on every page, desktop and phone
@@ -347,6 +371,10 @@ console.log(JSON.stringify(s));""", str(ROOT / 'js' / 'core.js')]).decode()
                     if i == 0: pg.add_script_tag(content=axe)
                     v = pg.evaluate("async () => (await axe.run(document, {runOnly: ['wcag2a','wcag2aa','wcag21aa','best-practice']})).violations.map(v => v.id + '(' + v.impact + ') ' + v.nodes.slice(0,2).map(n => n.target.join(' ')).join(' | '))")
                     check(f'axe {r}: no WCAG 2.1 AA / best-practice violations', not v, v)
+                if axe and vp_name == 'mob':
+                    if i == 0: pg.add_script_tag(content=axe)
+                    v = pg.evaluate("async () => (await axe.run(document, {runOnly: ['wcag2a','wcag2aa','wcag21aa','wcag22aa','best-practice']})).violations.filter(v => v.impact === 'serious' || v.impact === 'critical').map(v => v.id + '(' + v.impact + ') ' + v.nodes.slice(0,2).map(n => n.target.join(' ')).join(' | '))")
+                    check(f'axe mob {r} at 390px: no serious or critical violations', not v, v)
             if vp_name == 'desk':
                 # print stylesheet: invoice and sponsor log hide the app chrome
                 pg.emulate_media(media='print')
