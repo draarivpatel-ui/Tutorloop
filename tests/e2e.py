@@ -463,6 +463,23 @@ console.log(JSON.stringify(s));""", str(ROOT / 'js' / 'core.js')]).decode()
                 check('print hours: sponsor signature line shown', pg.is_visible('.sign'))
                 pg.emulate_media(media='screen')
             ctx.close()
+
+        # stress: an 80-character one-word name, a long parent email and a spaceless topic must wrap, not push a
+        # phone page sideways (the dashboard was 818px wide at 390px before Oct 11); one family "owes", not "owe"
+        ctx = b.new_context(viewport={'width': 390, 'height': 844}); pg = ctx.new_page(); pg.on('dialog', lambda d: d.accept())
+        pg.goto(URL); pg.wait_for_timeout(300); go(pg, 'students')
+        pg.fill('#c-name', 'Maximilian' + 'x' * 60 + ' Long'); pg.fill('#c-rate', '25')
+        pg.fill('#c-pemail', 'averyveryveryverylongparentemailaddress@someverylongdomainname-example.com')
+        pg.click('#clientForm button[type=submit]'); pg.wait_for_timeout(200)
+        go(pg, 'log'); pg.fill('#f-topics', 'supercalifragilistic-topic-without-any-spaces-at-all-whatsoever-' * 2)
+        pg.click('#sessionForm button[type=submit]'); pg.wait_for_timeout(200)
+        for r in ['dashboard', 'students', 'reports', 'invoices', 'hours', 'summary', 'settings']:
+            go(pg, r); pg.wait_for_timeout(150)
+            over = pg.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
+            check(f'long names at 390px, {r}: no horizontal overflow', over <= 0, f'{over}px')
+        go(pg, 'dashboard')
+        check('one family with a balance reads "1 family owes you"', '1 family owes you' in pg.inner_text('#app'), pg.inner_text('#app')[:400])
+        ctx.close()
         b.close()
 finally:
     srv.terminate()

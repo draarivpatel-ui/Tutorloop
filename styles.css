@@ -242,3 +242,11 @@ canvas { display: block; width: 100%; height: 220px; }
 .pay-history summary { cursor: pointer; padding: 6px 0; }
 .pay-history ul { margin: 4px 0 0; padding-left: 20px; }
 @media (max-width: 640px) { .pay-form .pay-row { grid-template-columns: 1fr; } .pay-form .pay-row .btn { width: 100%; } }
+
+/* Long unbroken text (an 80-character name, a pasted URL as a topic, a long parent email) must wrap instead of
+   pushing the page wider than a phone (it made the dashboard 818 px wide at 390 px). Short words never break. */
+#app, .toast { overflow-wrap: anywhere; }
+#app td.num, #app th { overflow-wrap: normal; }
+#app .btn { max-width: 100%; }
+td.who b { white-space: normal; }  /* was nowrap: an 80-character name pushed the page sideways */
+table.stack td > * { min-width: 0; }

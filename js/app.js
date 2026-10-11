@@ -261,7 +261,7 @@
         <div class="grid kpis">
           <div class="card kpi"><div class="label">Earned this month</div><div class="value">${C.money(s.earned)}</div><div class="hint">${C.plural(s.paidHours, 'paid hour')}${s.effectiveRate ? ' · ' + C.money(s.effectiveRate) + '/hr' : ''}</div></div>
           <div class="card kpi"><div class="label">Collected this month</div><div class="value good">${C.money(s.collected)}</div><div class="hint">${C.plural(s.sessions, 'session')} this month</div></div>
-          <div class="card kpi"><div class="label">Unpaid (all time)</div><div class="value ${s.unpaidAll > 0 ? 'warn' : ''}">${C.money(s.unpaidAll)}</div><div class="hint">${bal.length ? C.plural(bal.length, 'family', 'families') + ' owe you' : 'all caught up'}</div></div>
+          <div class="card kpi"><div class="label">Unpaid (all time)</div><div class="value ${s.unpaidAll > 0 ? 'warn' : ''}">${C.money(s.unpaidAll)}</div><div class="hint">${bal.length ? C.plural(bal.length, 'family', 'families') + (bal.length === 1 ? ' owes you' : ' owe you') : 'all caught up'}</div></div>
           <div class="card kpi"><div class="label">Service hours</div><div class="value brand">${sp.hours}</div><div class="hint">${sp.goal ? sp.pct + '% of your ' + sp.goal + '-hour goal' : 'volunteer tutoring logged'}</div></div>
         </div>
         <div class="grid two mt">
