@@ -16,7 +16,7 @@
   function emptyState() {
     return {
       version: SCHEMA_VERSION,
-      profile: { name: '', business: '', email: '', venmo: '', plan: 'free', serviceGoal: '' },
+      profile: { name: '', business: '', email: '', venmo: '', payMethod: '', referralFooter: false, plan: 'free', serviceGoal: '' },
       clients: [],
       sessions: []
     };
@@ -306,10 +306,62 @@
     }
     const owed = ss.filter(s => !s.paid && !s.volunteer).reduce((a, s) => a + sessionAmount(s, c), 0);
     if (owed > 0) {
-      lines.push('', 'Balance for these sessions: ' + money(owed) + '.' + (state.profile.venmo ? ' You can pay by ' + state.profile.venmo + '.' : ''));
+      const pay = paymentSentence(state.profile);
+      lines.push('', 'Balance for these sessions: ' + money(owed) + '.' + (pay ? ' ' + pay : ''));
     }
     lines.push('', 'Let me know if there is anything you would like me to focus on next.', '', 'Thanks,', tutor);
+    const footer = referralFooter(state.profile);
+    if (footer) lines.push('', '--', footer);
     return lines.join('\n');
+  }
+
+  /* ---------- payment wording & referral footer ---------- */
+
+  const APP_URL = 'https://aariv.me/Tutorloop/';
+  const PAY_METHODS = ['Venmo', 'Zelle', 'PayPal', 'Cash App'];
+
+  /**
+   * Best guess at the payment app from the handle alone, used when the tutor leaves
+   * "Payment app" blank: $cashtag -> Cash App, paypal.me -> PayPal, @handle -> Venmo,
+   * email or phone number -> Zelle. Returns '' when it can't tell.
+   */
+  function guessPayMethod(handle) {
+    const h = String(handle || '').trim();
+    if (!h) return '';
+    if (/^\$[A-Za-z]/.test(h)) return 'Cash App';
+    if (/paypal\.me|paypal\.com/i.test(h)) return 'PayPal';
+    if (/^@[\w.-]+$/.test(h)) return 'Venmo';
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(h) || /^\+?[\d\s().-]{7,}$/.test(h)) return 'Zelle';
+    return '';
+  }
+
+  /**
+   * "Venmo @aariv-tutoring": the payment app label plus the handle, or '' with no handle.
+   * The label is the tutor's own "Payment app" setting, else a guess from the handle. If the handle
+   * already names an app ("Zelle: me@x.com"), it is used as-is so the label is never doubled.
+   */
+  function paymentText(profile) {
+    const p = profile || {};
+    const handle = String(p.venmo || '').trim();
+    if (!handle) return '';
+    if (/\b(venmo|zelle|paypal|cash ?app)\b/i.test(handle)) return handle;
+    const label = String(p.payMethod || '').trim() || guessPayMethod(handle);
+    return label ? label + ' ' + handle : handle;
+  }
+
+  /** The sentence used in reminders and parent updates, or '' with no handle. */
+  function paymentSentence(profile) {
+    const t = paymentText(profile);
+    if (!t) return '';
+    const end = /[.!?]$/.test(t) ? '' : '.';
+    // Free-form text with no app named ("cash at the session") reads better as a label than after "pay with".
+    const named = /\b(venmo|zelle|paypal|cash ?app)\b/i.test(t) || t !== String(profile.venmo || '').trim();
+    return (named ? 'You can pay with ' : 'Payment: ') + t + end;
+  }
+
+  /** Opt-in footer. A plain link: no tracking, no referral code, nothing personal. */
+  function referralFooter(profile) {
+    return profile && profile.referralFooter ? 'Sent with TutorLoop, a free app for student tutors: ' + APP_URL : '';
   }
 
   /** A polite payment reminder for a family's unpaid sessions. Returns '' when nothing is owed. */
@@ -325,8 +377,11 @@
       'Just a friendly reminder about ' + first + "'s tutoring balance of " + money(total) + ' for ' + plural(items.length, 'session') + ':', ''];
     items.forEach(s => lines.push('• ' + fmtDate(s.date) + ': ' + s.minutes + ' min' + (s.topics ? ' (' + s.topics + ')' : '') + ', ' + money(sessionAmount(s, c))));
     lines.push('');
-    if (state.profile.venmo) lines.push('You can pay by ' + state.profile.venmo + '.');
+    const pay = paymentSentence(state.profile);
+    if (pay) lines.push(pay);
     lines.push('No rush if you have already sent it. Thank you!', '', state.profile.name || 'Your tutor');
+    const footer = referralFooter(state.profile);
+    if (footer) lines.push('', '--', footer);
     return lines.join('\n');
   }
 
@@ -403,6 +458,7 @@
     const p = data.profile && typeof data.profile === 'object' ? data.profile : {};
     const profile = {
       name: str(p.name, 80), business: str(p.business, 100), email: str(p.email, 120), venmo: str(p.venmo, 80),
+      payMethod: str(p.payMethod, 30).trim(), referralFooter: p.referralFooter === true,
       plan: ['free', 'pro', 'club'].includes(p.plan) ? p.plan : base.profile.plan,
       serviceGoal: Number(p.serviceGoal) > 0 ? Math.min(1000, Number(p.serviceGoal)) : ''
     };
@@ -429,7 +485,7 @@
   function demoState(today) {
     const day = n => addDays(today, -n);
     const st = emptyState();
-    st.profile = { name: 'Aariv Patel', business: 'Aariv Math Tutoring', email: 'tutor@example.com', venmo: '@aariv-tutoring', plan: 'free', serviceGoal: 10 };
+    st.profile = { name: 'Aariv Patel', business: 'Aariv Math Tutoring', email: 'tutor@example.com', venmo: '@aariv-tutoring', payMethod: 'Venmo', referralFooter: false, plan: 'free', serviceGoal: 10 };
     const maya = { id: 'c_maya', name: 'Maya Chen', subject: 'Algebra 1', grade: '8', rate: 25, parentName: 'Mrs. Chen', parentEmail: 'parent.chen@example.com' };
     const ethan = { id: 'c_ethan', name: 'Ethan Brooks', subject: 'MATHCOUNTS prep', grade: '7', rate: 30, parentName: 'Mr. Brooks', parentEmail: 'brooks.family@example.com' };
     const sofia = { id: 'c_sofia', name: 'Sofia Ramirez', subject: 'Geometry', grade: '9', rate: 0, parentName: 'Ms. Ramirez', parentEmail: '', volunteerDefault: true };
@@ -455,6 +511,7 @@
     SCHEMA_VERSION, FREE_CLIENT_LIMIT, MAX_MINUTES, uid, emptyState, cents, money, plural, isValidDate, addDays,
     sessionAmount, clientById, validateClient, validateSession, stats, monthlySeries, balances, lastSession,
     serviceProgress, rangePreset, topicList, sentiment, sentence, progressReport, reminderMessage, invoice,
+    APP_URL, PAY_METHODS, guessPayMethod, paymentText, paymentSentence, referralFooter,
     csvEscape, volunteerCSV, sessionsCSV, importState, demoState, fmtDate, fmtMonth, monthKey
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
