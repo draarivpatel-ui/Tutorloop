@@ -524,5 +524,28 @@ test('monthly family statement lists the payments received that month, and only 
   assert.ok(!C.summaryText(payState(), '2026-09', 'c1').includes('Payments received'), 'no section without payments');
 });
 
+test('backup round trip keeps part payments and balances; a v1 backup with no payments or partPaid migrates cleanly', () => {
+  const st = payState();
+  C.applyPayment(st, 'c1', C.planPayment(st, 'c1', 40), '2026-09-20');
+  const back = C.importState(JSON.stringify(st));
+  assert.deepStrictEqual(back.payments, st.payments);
+  assert.strictEqual(bal(back, 'c1').owed, bal(st, 'c1').owed);
+  assert.strictEqual(C.importState(JSON.stringify(back)).payments.length, back.payments.length, 'second round trip is stable');
+  const old = { version: 1, profile: { name: 'A' }, clients: [{ id: 'c1', name: 'Maya', rate: 25 }],
+    sessions: [{ id: 's1', clientId: 'c1', date: '2026-09-03', minutes: 60, paid: false }] };
+  const mig = C.importState(JSON.stringify(old));
+  assert.deepStrictEqual(mig.payments, []);
+  assert.strictEqual(mig.version, C.SCHEMA_VERSION === undefined ? mig.version : C.SCHEMA_VERSION);
+  assert.ok(!('partPaid' in mig.sessions[0]));
+  assert.strictEqual(C.balances(mig)[0].owed, 25);
+});
+test('backup import drops bad payments and rejects a newer-version file', () => {
+  const st = payState();
+  st.payments = [{ id: 'p1', clientId: 'c1', date: '2026-09-20', amount: 10 }, { id: 'p1', clientId: 'c1', date: '2026-09-21', amount: 5 },
+    { id: 'p2', clientId: 'zz', date: '2026-09-20', amount: 5 }, { id: 'p3', clientId: 'c1', date: 'bad', amount: 5 }, { id: 'p4', clientId: 'c1', date: '2026-09-20', amount: -3 }];
+  assert.strictEqual(C.importState(JSON.stringify(st)).payments.length, 1);
+  assert.throws(() => C.importState(JSON.stringify({ version: 999, clients: [], sessions: [] })), /newer version/);
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
