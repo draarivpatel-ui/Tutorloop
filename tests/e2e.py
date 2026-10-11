@@ -15,7 +15,7 @@ from playwright.sync_api import sync_playwright
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SHOTS = os.environ.get('SHOTS')
 AXE_PATH = ROOT / 'node_modules' / 'axe-core' / 'axe.min.js'
-ROUTES = ['dashboard', 'log', 'students', 'reports', 'invoices', 'hours', 'settings', 'about']
+ROUTES = ['dashboard', 'log', 'students', 'reports', 'invoices', 'hours', 'summary', 'settings', 'about']
 
 results, failures = [], []
 def check(name, cond, detail=''):
@@ -215,6 +215,60 @@ try:
         check('no console errors on the shared-origin SW checks', not [c for c in sw_console if not any(x in c for x in ('ERR_INTERNET_DISCONNECTED', '(Offline)', '(File not found)'))], sw_console)
         ctx.close()
 
+        # first run: quick start gets a tutor from an empty app to a drafted parent update; toasts go away
+        axe_src = AXE_PATH.read_text() if AXE_PATH.exists() else None
+        ctx = b.new_context(viewport={'width': 1280, 'height': 900}, bypass_csp=True); pg = ctx.new_page()
+        qs_console = []
+        pg.on('console', lambda m: m.type == 'error' and qs_console.append(m.text)); pg.on('pageerror', lambda e: qs_console.append(str(e)))
+        pg.on('dialog', lambda d: d.accept())
+        pg.goto(URL); pg.wait_for_timeout(300)
+        if axe_src:
+            pg.add_script_tag(content=axe_src)
+            v = pg.evaluate("async () => (await axe.run(document, {runOnly: ['wcag2a','wcag2aa','wcag21aa','best-practice']})).violations.map(v => v.id + ' ' + v.nodes.slice(0,2).map(n => n.target.join(' ')).join(' | '))")
+            check('axe empty dashboard with quick-start form: no violations', not v, v)
+        t0 = time.time()
+        pg.fill('#q-name', 'Riya Shah'); pg.fill('#q-rate', '20'); pg.click('#quickForm [data-min="45"]')
+        pg.fill('#q-topics', 'fractions, ratios'); pg.fill('#q-notes', 'Improved on fractions, confident now')
+        pg.click('#quickForm button[type=submit]'); pg.wait_for_selector('.firstrun')
+        took = time.time() - t0
+        st = pg.evaluate("JSON.parse(localStorage.getItem('tutorloop.v1'))")
+        check('quick start creates the student and a 45-minute session in one submit', len(st['clients']) == 1 and len(st['sessions']) == 1 and st['sessions'][0]['minutes'] == 45, st)
+        callout = pg.inner_text('.firstrun')
+        check('first-run callout shows the drafted parent update and a $15.00 invoice', 'Riya is making clear progress' in callout and '$15.00' in callout, callout[:300])
+        check('focus moves to the first-run callout heading', pg.evaluate("document.activeElement.id") == 'fr-title')
+        check(f'quick start to "aha" takes well under 30s of app time ({took:.1f}s scripted)', took < 30)
+        if axe_src:
+            pg.wait_for_timeout(400)  # let the toast finish fading in; axe misreads contrast mid-transition
+            v = pg.evaluate("async () => (await axe.run(document, {runOnly: ['wcag2a','wcag2aa','wcag21aa','best-practice']})).violations.map(v => v.id + ' ' + v.nodes.slice(0,2).map(n => n.target.join(' ')).join(' | '))")
+            check('axe first-run dashboard: no violations', not v, v)
+        # the bug: the "Sample data loaded" Undo toast used to linger in the page after fading out
+        go(pg, 'settings'); pg.click('#app [data-act=demo]'); pg.wait_for_timeout(300)
+        check('"Sample data loaded" toast appears with Undo and a close button', pg.is_visible('#toast .toast-undo') and pg.is_visible('#toast .toast-close') and 'Sample data loaded' in pg.inner_text('#toast'))
+        pg.mouse.move(5, 5); pg.wait_for_timeout(8600)
+        gone = pg.evaluate("(() => { const t = document.getElementById('toast'); return { hidden: t.hidden, html: t.innerHTML, display: getComputedStyle(t).display }; })()")
+        check('toast auto-dismisses within ~8s and is removed (hidden, no leftover Undo button)', gone['hidden'] and gone['html'] == '' and gone['display'] == 'none', gone)
+        go(pg, 'students/c_ethan'); pg.click('#clientForm button[type=submit]'); pg.wait_for_timeout(200)
+        pg.hover('#toast'); pg.wait_for_timeout(8600)
+        check('toast stays while hovered (time to reach Undo)', pg.is_visible('#toast .toast-undo'))
+        pg.click('#toast .toast-close'); pg.wait_for_timeout(400)
+        check('close button removes the toast', pg.evaluate("document.getElementById('toast').hidden"))
+        pg.click('#app h1'); pg.keyboard.press('Control+z'); pg.wait_for_timeout(200)
+        check('Ctrl+Z still undoes after the toast is gone', pg.evaluate("document.getElementById('toast').textContent").startswith('Undone'))
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(400)
+        check('Escape dismisses a toast', pg.evaluate("document.getElementById('toast').hidden"))
+        # monthly summary: family statement + whole-month recap, copy as text
+        go(pg, 'summary'); pg.wait_for_timeout(150)
+        months = pg.eval_on_selector_all('#sumMonth option', 'os => os.map(o => o.value)')
+        pg.select_option('#sumMonth', months[1]); pg.wait_for_timeout(200)
+        check('summary month picker changes the URL', pg.evaluate("location.hash") == '#summary/' + months[1])
+        pg.select_option('#sumWho', 'c_maya'); pg.wait_for_timeout(200)
+        doc = pg.inner_text('.summary-doc')
+        check('family statement lists sessions with paid/unpaid status', 'Maya Chen: tutoring summary' in doc and ('paid' in doc), doc[:200])
+        mail = pg.get_attribute('a[href^="mailto:"]', 'href') or ''
+        check('statement opens in email addressed to the parent', mail.startswith('mailto:parent.chen%40example.com'), mail[:80])
+        check('no console errors in first-run, toast, and summary flows', not qs_console, qs_console)
+        ctx.close()
+
         # layout + accessibility on every page, desktop and phone
         axe = AXE_PATH.read_text() if AXE_PATH.exists() else None
         for vp_name, vp in [('desk', {'width': 1280, 'height': 900}), ('mob', {'width': 390, 'height': 844})]:
@@ -223,6 +277,9 @@ try:
             pg.goto(URL); pg.wait_for_timeout(300); pg.click('#app [data-act=demo]'); pg.wait_for_timeout(300)
             for i, r in enumerate(ROUTES):
                 go(pg, r); pg.wait_for_timeout(150)
+                if vp_name == 'desk' and i == 0:
+                    nav_over = pg.evaluate("(() => { const n = document.getElementById('nav'); return n.scrollWidth - n.clientWidth; })()")
+                    check('desk: every nav item fits at 1280px (no clipped links)', nav_over <= 0, f'{nav_over}px')
                 over = pg.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
                 check(f'{vp_name} {r}: no horizontal overflow', over <= 0, f'{over}px')
                 if SHOTS:
@@ -235,7 +292,7 @@ try:
             if vp_name == 'desk':
                 # print stylesheet: invoice and sponsor log hide the app chrome
                 pg.emulate_media(media='print')
-                for r in ['invoices', 'hours']:
+                for r in ['invoices', 'hours', 'summary']:
                     go(pg, r); pg.wait_for_timeout(150)
                     check(f'print {r}: nav and buttons hidden', not pg.is_visible('.topbar') and not pg.is_visible('.toolbar'))
                     if SHOTS: pg.screenshot(path=f'{SHOTS}/print-{r}.png', full_page=True)
