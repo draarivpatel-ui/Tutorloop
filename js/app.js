@@ -47,7 +47,7 @@
   // Ctrl/Cmd+Z undoes the last change when you're not typing in a field.
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && lastUndo && !e.target.closest('input, textarea, select, [contenteditable]')) {
-      e.preventDefault(); document.getElementById('toast').classList.remove('show'); lastUndo();
+      e.preventDefault(); hideToast(); lastUndo();
     }
   });
 
@@ -75,14 +75,40 @@
     $banner.hidden = false;
   }
 
-  let toastTimer;
-  function toast(msg, undo) {
-    const t = document.getElementById('toast');
-    t.innerHTML = '<span>' + esc(msg) + '</span>' + (undo ? '<button type="button" class="toast-undo">Undo</button>' : '');
-    t.classList.add('show');
-    if (undo) t.querySelector('.toast-undo').addEventListener('click', () => { t.classList.remove('show'); if (undo === lastUndo) undo(); }, { once: true });
-    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), undo ? 6000 : 2600);
+  /* Toasts auto-dismiss (8s with Undo, 3s without), pause while hovered or focused, close with the ×
+   * button or Escape, and are fully removed afterwards (hidden + emptied) so no invisible Undo button
+   * is left behind for keyboards, screen readers, or page scrapers. Ctrl/Cmd+Z still undoes after. */
+  const TOAST_MS = { undo: 8000, plain: 3000 };
+  let toastTimer, toastFade, toastLeft = 0, toastStart = 0, toastGen = 0;
+  function toastEl() { return document.getElementById('toast'); }
+  function armToast(ms) { clearTimeout(toastTimer); toastLeft = ms; toastStart = Date.now(); toastTimer = setTimeout(hideToast, ms); }
+  function hideToast() {
+    const t = toastEl(); if (!t) return;
+    clearTimeout(toastTimer); clearTimeout(toastFade);
+    t.classList.remove('show');
+    const gen = toastGen;
+    toastFade = setTimeout(() => { if (gen === toastGen) { t.hidden = true; t.innerHTML = ''; } }, 250);
   }
+  function toast(msg, undo) {
+    const t = toastEl(); if (!t) return;
+    toastGen++; clearTimeout(toastFade);
+    t.innerHTML = '<span class="toast-msg">' + esc(msg) + '</span>' + (undo ? '<button type="button" class="toast-undo">Undo</button>' : '') +
+      '<button type="button" class="toast-close" aria-label="Dismiss notification">&times;</button>';
+    t.hidden = false;
+    void t.offsetWidth;   // let the fade-in transition run after un-hiding
+    t.classList.add('show');
+    if (undo) t.querySelector('.toast-undo').addEventListener('click', () => { hideToast(); if (undo === lastUndo) undo(); }, { once: true });
+    t.querySelector('.toast-close').addEventListener('click', hideToast, { once: true });
+    armToast(undo ? TOAST_MS.undo : TOAST_MS.plain);
+  }
+  (function wireToast() {
+    const t = toastEl(); if (!t) return;
+    const pause = () => { if (!t.classList.contains('show')) return; clearTimeout(toastTimer); toastLeft = Math.max(0, toastLeft - (Date.now() - toastStart)); };
+    const resume = () => { if (t.classList.contains('show') && !t.matches(':hover') && !t.contains(document.activeElement)) armToast(Math.max(toastLeft, 2000)); };
+    t.addEventListener('mouseenter', pause); t.addEventListener('focusin', pause);
+    t.addEventListener('mouseleave', resume); t.addEventListener('focusout', () => setTimeout(resume, 0));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && t.classList.contains('show')) hideToast(); });
+  })();
 
   function download(name, text, type) {
     const a = document.createElement('a');
@@ -149,8 +175,25 @@
             <div class="actions"><button class="btn" data-act="demo">Try it with sample data</button><a class="btn ghost" href="#students">Start with my own students</a></div>
             <p class="mt-s"><a href="#about">How it works, who it's for, and pricing</a></p>
           </section>
+          <form class="card quickstart" id="quickForm" novalidate aria-labelledby="qs-title">
+            <h2 id="qs-title">Try it with your own student <span class="opt">(about 30 seconds)</span></h2>
+            <p class="sub tight">Log one real session and TutorLoop writes the parent update, the invoice, and the payment reminder for you.</p>
+            <div class="form-errors" tabindex="-1" role="alert"></div>
+            <div class="row">
+              <div><label for="q-name">Student name</label><input id="q-name" name="name" maxlength="80" autocomplete="off" placeholder="e.g. Maya Chen" required></div>
+              <div><label for="q-rate">Rate ($/hr)</label><input id="q-rate" name="rate" type="number" inputmode="decimal" min="0" max="1000" step="0.01" value="25"></div>
+              <div><label for="q-minutes">Minutes today</label><input id="q-minutes" name="minutes" type="number" inputmode="numeric" min="1" max="${C.MAX_MINUTES}" step="1" value="60" required>
+                <div class="chips" role="group" aria-label="Quick durations">${[30, 45, 60, 90].map(m => `<button type="button" class="chip" data-act="setMinutes" data-target="q-minutes" data-min="${m}" aria-label="${m} minutes">${m}m</button>`).join('')}</div></div>
+            </div>
+            <div class="row">
+              <div><label for="q-topics">What did you work on?</label><input id="q-topics" name="topics" maxlength="300" placeholder="e.g. fractions, word problems"></div>
+              <div><label for="q-notes">How did it go?</label><input id="q-notes" name="notes" maxlength="2000" placeholder="e.g. Improved on word problems, still rushes signs"></div>
+            </div>
+            <label class="check"><input type="checkbox" name="volunteer"> Volunteer session (service hours, no charge)</label>
+            <div class="actions"><button class="btn" type="submit">Save and see what TutorLoop makes</button></div>
+          </form>
           <section class="card steps">
-            <h2>Get set up in three steps</h2>
+            <h2>Or set up step by step</h2>
             <ol>
               <li class="${state.profile.name ? 'done' : ''}"><a href="#settings">Add your name and payment handle</a><span class="sub-inline">so they show on invoices and updates</span></li>
               <li><a href="#students">Add a student</a><span class="sub-inline">name, subject, rate, parent email</span></li>
@@ -165,11 +208,25 @@
       const recent = state.sessions.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
       const series = C.monthlySeries(state, m, 6);
       const hasEarnings = series.some(d => d.earned > 0);
+      const firstRun = state.sessions.length === 1 && state.clients.length === 1 ? state.sessions[0] : null;
+      const fc = firstRun && C.clientById(state, firstRun.clientId);
+      const callout = fc ? `<section class="card firstrun" aria-labelledby="fr-title"><h2 id="fr-title" tabindex="-1">Your first session is logged. Here's what TutorLoop made from it</h2>
+          <div class="grid two">
+            <div><h3 class="h-s">Parent update (draft)</h3><pre class="excerpt">${esc(C.progressReport(state, fc.id, '', '').split('\n').slice(0, 7).join('\n'))}</pre>
+              <div class="actions"><a class="btn small" href="#reports">Open the full update</a></div></div>
+            <div><h3 class="h-s">Next, in one click each</h3><ul class="plain-list">
+              ${firstRun.volunteer ? `<li><a href="#hours">Service-hour log</a>: ${C.cents(firstRun.minutes / 60)} hours ready to print for your sponsor</li>`
+                : `<li><a href="#invoices/${esc(fc.id)}">Invoice</a> for ${C.money(C.sessionAmount(firstRun, fc))}, ready to print or save as PDF</li>`}
+              <li><a href="#students/${esc(fc.id)}">Add a parent email</a> so updates and reminders open addressed${fc.parentEmail ? ' (done)' : ''}</li>
+              <li><a href="#settings">Add your name and payment handle</a> so they appear on everything${state.profile.name ? ' (done)' : ''}</li>
+              <li><a href="#summary">Monthly summary</a> to print or send at the end of the month</li></ul></div>
+          </div></section>` : '';
       return `
         <h1 tabindex="-1">${hello} 👋</h1>
-        <p class="sub">Your tutoring business at a glance for ${esc(C.fmtMonth(m))}.</p>
+        <p class="sub">Your tutoring business at a glance for ${esc(C.fmtMonth(m))}. <a href="#summary/${esc(m)}">Monthly summary</a></p>
+        ${callout}
         <div class="grid kpis">
-          <div class="card kpi"><div class="label">Earned this month</div><div class="value">${C.money(s.earned)}</div><div class="hint">${s.paidHours} paid hrs${s.effectiveRate ? ' · ' + C.money(s.effectiveRate) + '/hr' : ''}</div></div>
+          <div class="card kpi"><div class="label">Earned this month</div><div class="value">${C.money(s.earned)}</div><div class="hint">${C.plural(s.paidHours, 'paid hour')}${s.effectiveRate ? ' · ' + C.money(s.effectiveRate) + '/hr' : ''}</div></div>
           <div class="card kpi"><div class="label">Collected this month</div><div class="value good">${C.money(s.collected)}</div><div class="hint">${C.plural(s.sessions, 'session')} this month</div></div>
           <div class="card kpi"><div class="label">Unpaid (all time)</div><div class="value ${s.unpaidAll > 0 ? 'warn' : ''}">${C.money(s.unpaidAll)}</div><div class="hint">${bal.length ? C.plural(bal.length, 'family', 'families') + ' owe you' : 'all caught up'}</div></div>
           <div class="card kpi"><div class="label">Service hours</div><div class="value brand">${sp.hours}</div><div class="hint">${sp.goal ? sp.pct + '% of your ' + sp.goal + '-hour goal' : 'volunteer tutoring logged'}</div></div>
@@ -326,6 +383,56 @@
         </article>`;
     },
 
+    summary(params) {
+      if (!state.clients.length) return noStudents('Monthly summary');
+      const months = C.summaryMonths(state, thisMonth());
+      const month = /^\d{4}-\d{2}$/.test(params[0] || '') ? params[0] : thisMonth();
+      if (!months.includes(month)) months.push(month), months.sort().reverse();
+      const c = params[1] ? C.clientById(state, params[1]) : null;
+      const sm = C.monthSummary(state, month, c ? c.id : '');
+      const t = sm.totals, p = state.profile, label = C.fmtMonth(month);
+      const text = C.summaryText(state, month, c ? c.id : '');
+      const hrs = h => C.plural(h, 'hour');
+      const kpi = (l, v, h, cls) => `<div class="card kpi"><div class="label">${l}</div><div class="value ${cls || ''}">${v}</div><div class="hint">${h}</div></div>`;
+      return `
+        <div class="no-print"><h1 tabindex="-1">Monthly summary</h1>
+          <p class="sub">One page per month: send it to a family as a statement, hand it to your NHS or service-hour sponsor, or keep it for your own records.</p>
+          ${params[1] && !c ? '<p class="notice">That student was not found, so the summary for all students is shown.</p>' : ''}
+          <div class="toolbar">
+            <label for="sumMonth" class="sr-only">Month</label><select id="sumMonth">${months.map(k => `<option value="${esc(k)}"${k === month ? ' selected' : ''}>${esc(C.fmtMonth(k))}</option>`).join('')}</select>
+            <label for="sumWho" class="sr-only">Student</label><select id="sumWho"><option value="">All students</option>${state.clients.map(x => `<option value="${esc(x.id)}"${c && x.id === c.id ? ' selected' : ''}>${esc(x.name)} (family statement)</option>`).join('')}</select>
+            <button class="btn" data-act="print">Print / Save PDF</button>
+            <button class="btn ghost" data-act="copySummary">Copy as text</button>
+            ${c ? `<a class="btn ghost" href="${esc(mailto(c.parentEmail, (c.name.split(' ')[0]) + "'s tutoring summary for " + label, text))}">Open in email</a>` : ''}
+          </div></div>
+        <article class="card summary-doc" aria-label="Monthly summary preview">
+          <div class="head"><div><h2 class="flush">${c ? esc(c.name) + ': tutoring summary' : 'Tutoring summary'}</h2>
+            <div class="muted">${esc(label)}${c && c.subject ? ' · ' + esc(c.subject) : ''}</div></div>
+            <div class="right"><b>${esc(p.business || p.name || 'Your tutoring business')}</b>${p.business && p.name ? '<br>' + esc(p.name) : ''}${p.email ? '<br>' + esc(p.email) : ''}</div></div>
+          ${t.sessions ? `
+          <div class="grid kpis">
+            ${kpi('Sessions', t.sessions, hrs(t.hours) + ' total')}
+            ${t.paidSessions ? kpi('Charged', C.money(t.billed), hrs(t.paidHours) + ' of paid tutoring') : ''}
+            ${t.paidSessions ? kpi('Unpaid', C.money(t.unpaid), C.money(t.paid) + ' marked paid', t.unpaid > 0 ? 'warn' : 'good') : ''}
+            ${t.volunteerSessions || !c ? kpi('Service hours', t.volunteerHours, C.plural(t.volunteerSessions, 'volunteer session'), 'brand') : ''}
+          </div>
+          ${sm.topics.length ? `<p><b>Covered:</b> ${esc(sm.topics.slice(0, 10).join(', '))}</p>` : ''}
+          ${c ? `<table><thead><tr><th scope="col">Date</th><th scope="col">Topics</th><th scope="col" class="num">Time</th><th scope="col" class="num">Amount</th><th scope="col">Status</th></tr></thead><tbody>
+              ${sm.sessions.map(s => `<tr><td>${esc(fd(s.date))}</td><td>${esc(s.topics) || '<span class="muted">-</span>'}</td><td class="num">${esc(s.minutes)} min</td>
+                <td class="num">${s.volunteer ? '<span class="muted">-</span>' : C.money(C.sessionAmount(s, c))}</td><td>${s.volunteer ? 'volunteer' : s.paid ? 'paid' : 'unpaid'}</td></tr>`).join('')}</tbody></table>
+              ${t.paidSessions ? `<p>${sm.balanceAll > 0 ? `<b>Total balance due today: ${C.money(sm.balanceAll)}</b>${p.venmo ? ' · Pay with: ' + esc(C.paymentText(p)) : ''}` : 'Nothing is due. Thank you!'}</p>` : ''}`
+            : `<table class="stack"><thead><tr><th scope="col">Student</th><th scope="col" class="num">Sessions</th><th scope="col" class="num">Hours</th><th scope="col" class="num">Charged</th><th scope="col" class="num">Unpaid</th><th scope="col" class="num">Service hrs</th></tr></thead><tbody>
+              ${sm.students.map(r => `<tr><td data-label="Student"><a class="no-print-link" href="#summary/${esc(month)}/${esc(r.client.id)}">${esc(r.client.name)}</a></td><td data-label="Sessions" class="num">${r.sessions}</td><td data-label="Hours" class="num">${r.hours}</td>
+                <td data-label="Charged" class="num">${r.paidSessions ? C.money(r.billed) : '-'}</td><td data-label="Unpaid" class="num">${r.paidSessions ? C.money(r.unpaid) : '-'}</td><td data-label="Service hrs" class="num">${r.volunteerHours || '-'}</td></tr>`).join('')}
+              </tbody><tfoot><tr><td data-label="Student"><b>Total</b></td><td data-label="Sessions" class="num"><b>${t.sessions}</b></td><td data-label="Hours" class="num"><b>${t.hours}</b></td><td data-label="Charged" class="num"><b>${C.money(t.billed)}</b></td><td data-label="Unpaid" class="num"><b>${C.money(t.unpaid)}</b></td><td data-label="Service hrs" class="num"><b>${t.volunteerHours}</b></td></tr></tfoot></table>`}
+          <p class="muted small">"Paid" and "unpaid" show each session's status as of ${esc(C.fmtDate(today(), true))}. Volunteer sessions are not charged.</p>
+          ${!c && t.volunteerSessions ? '<div class="print-only sign"><p>Sponsor signature: ______________________________ Date: ____________</p></div>' : ''}`
+          : `<p class="sub">No sessions ${c ? 'with ' + esc(c.name.split(' ')[0]) + ' ' : ''}in ${esc(label)} yet.</p>`}
+          ${p.referralFooter ? `<p class="muted referral">Made with TutorLoop, a free app for student tutors: <a href="${esc(C.APP_URL)}">${esc(C.APP_URL.replace(/^https:\/\//, ''))}</a></p>` : ''}
+        </article>
+        <textarea id="summaryText" class="sr-only" tabindex="-1" aria-hidden="true" readonly>${esc(text)}</textarea>`;
+    },
+
     hours() {
       const vol = state.sessions.filter(s => s.volunteer).sort((a, b) => b.date.localeCompare(a.date));
       const sp = C.serviceProgress(state);
@@ -339,7 +446,7 @@
             <div class="hint">${sp.remaining ? sp.remaining + ' hours to go of ' + sp.goal : 'Goal reached! 🎉'}</div>` : '<div class="hint mt-s">No goal set. <a href="#settings">Set an hour goal</a> to track progress.</div>'}</div></div>
         <section class="card mt hours-doc">
           <div class="print-only"><h2>Volunteer tutoring log</h2><p>Volunteer: ${esc(p.name || '________________')} · Total: ${sp.hours} hours · Printed ${esc(C.fmtDate(today(), true))}</p></div>
-          <div class="toolbar no-print"><button class="btn" data-act="exportHours" ${vol.length ? '' : 'disabled'}>Export hours (CSV)</button><button class="btn ghost" data-act="print" ${vol.length ? '' : 'disabled'}>Print log for sponsor</button></div>
+          <div class="toolbar no-print"><button class="btn" data-act="exportHours" ${vol.length ? '' : 'disabled'}>Export hours (CSV)</button><button class="btn ghost" data-act="print" ${vol.length ? '' : 'disabled'}>Print log for sponsor</button><a class="btn ghost" href="#summary">Monthly summary</a></div>
           ${vol.length ? sessionTable(vol, true) : '<p class="sub">No volunteer sessions yet. Tick "Volunteer session" when you log one.</p>'}
           <div class="print-only sign"><p>Sponsor signature: ______________________________ Date: ____________</p></div>
         </section>`;
@@ -452,6 +559,16 @@
         </div>
         <h2 class="mt-l">Plans</h2>
         <p class="sub">Demo only: switching plans here simulates checkout, and no payment is taken.</p>
+        ${(() => {
+          const used = activeClients().length, lim = C.FREE_CLIENT_LIMIT, pv = C.proValue(state, 4);
+          const pct = Math.min(100, Math.round(used / lim * 100));
+          return `<section class="card usage" aria-labelledby="usage-title"><h3 id="usage-title">Your usage</h3>
+            ${p.plan === 'free' ? `<p class="tight"><b>${used} of ${lim}</b> active students on Free${used >= lim ? '. You are at the limit: archive a student or try Pro.' : '.'}</p>
+              <div class="bar" role="progressbar" aria-label="Free plan students used" aria-valuemin="0" aria-valuemax="${lim}" aria-valuenow="${used}"><span class="w${Math.round(pct / 5) * 5}"></span></div>`
+              : `<p class="tight"><b>${used}</b> active students on ${p.plan === 'club' ? 'Club' : 'Pro'} (no limit).</p>`}
+            <p class="sub mt-s">${pv ? `Pro is $4 a month, about <b>${C.plural(pv.minutes, 'minute')}</b> of tutoring at your average paid rate of ${C.money(pv.rate)}/hr.` : 'Once you log paid sessions, this shows what Pro costs in minutes of your own tutoring.'}
+              Everything you use today stays free for up to ${lim} students; the only thing Pro unlocks today is more students. Sync and scheduled reminders are roadmap items and won't be charged for until they exist.</p></section>`;
+        })()}
         <div class="grid plans">
           ${plan('free', 'Free', '$0', '', ['Up to 3 active students', 'Session log &amp; dashboard', 'Parent updates &amp; payment reminders', 'Invoices and service-hour export'], `<button class="btn ghost" data-act="plan" data-plan="free">Switch to Free</button>`)}
           ${plan('pro', 'Pro', '$4', '/month', ['Unlimited students', 'Everything in Free', 'Cloud sync across devices <span class="tag">roadmap</span>', 'Scheduled reminders <span class="tag">roadmap</span>'], `<button class="btn" data-act="plan" data-plan="pro">Try Pro (demo)</button>`)}
@@ -570,6 +687,10 @@
       updatePreview();
     }
     if (t.id === 'invPick') location.hash = 'invoices/' + encodeURIComponent(t.value);
+    if (t.id === 'sumMonth' || t.id === 'sumWho') {
+      const mo = document.getElementById('sumMonth').value, who = document.getElementById('sumWho').value;
+      location.hash = 'summary/' + encodeURIComponent(mo) + (who ? '/' + encodeURIComponent(who) : '');
+    }
     if (t.id === 'r-preset' && t.value !== 'custom') {
       const r = C.rangePreset(t.value, today());
       document.getElementById('r-from').value = r.from; document.getElementById('r-to').value = r.to; generateReport();
@@ -606,6 +727,20 @@
       location.hash = 'students';
       commit(existing ? 'Student updated' : 'Student added', () => { if (existing) Object.assign(existing, rec); else state.clients.push(Object.assign({ id: C.uid('c'), archived: false }, rec)); });
     }
+    if (f.id === 'quickForm') {
+      const client = { name: d.name, subject: '', grade: '', rate: d.rate === '' ? 0 : Number(d.rate), parentName: '', parentEmail: '', volunteerDefault: !!d.volunteer };
+      const errs = C.validateClient(client, state);
+      const sess = { clientId: 'pending', date: today(), minutes: Number(d.minutes), rate: null, topics: d.topics, notes: d.notes, paid: false, volunteer: !!d.volunteer };
+      C.validateSession(sess).forEach(e => { if (!errs.includes(e)) errs.push(e); });
+      if (errs.length) return showErrors(f, errs);
+      commit('First session saved', () => {
+        const id = C.uid('c');
+        state.clients.push(Object.assign({ id, archived: false }, client));
+        state.sessions.push(Object.assign({}, sess, { id: C.uid('s'), clientId: id }));
+      });
+      const fr = document.getElementById('fr-title'); if (fr) fr.focus();
+      return;
+    }
     if (f.id === 'profileForm') {
       const errs = [];
       if (d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) errs.push('Email looks invalid.');
@@ -625,7 +760,7 @@
         location.hash = 'dashboard';
         commit('Sample data loaded', () => { state = C.demoState(today()); });
         break;
-      case 'setMinutes': { const m = document.getElementById('f-minutes'); m.value = el.dataset.min; updatePreview(); break; }
+      case 'setMinutes': { const m = document.getElementById(el.dataset.target || 'f-minutes'); if (m) m.value = el.dataset.min; updatePreview(); break; }
       case 'togglePaid': { const s = state.sessions.find(x => x.id === id); if (s) commit(s.paid ? 'Marked unpaid' : 'Marked paid', () => { s.paid = !s.paid; }); break; }
       case 'markPaidAll': { const c = C.clientById(state, id); commit('All of ' + firstName(c && c.name) + "'s sessions marked paid", () => { state.sessions.forEach(s => { if (s.clientId === id && !s.volunteer) s.paid = true; }); }); break; }
       case 'deleteSession': location.hash = 'dashboard'; commit('Session deleted', () => { state.sessions = state.sessions.filter(s => s.id !== id); }); break;
@@ -644,6 +779,7 @@
       }
       case 'copyReport': copyText(document.getElementById('reportOut').value).then(ok => toast(ok ? 'Copied to clipboard' : 'Copy failed. Select the text and copy it manually.')); break;
       case 'print': window.print(); break;
+      case 'copySummary': copyText(document.getElementById('summaryText').value).then(ok => toast(ok ? 'Summary copied' : 'Copy failed. Use Print / Save PDF instead.')); break;
       case 'exportHours': download('service-hours-' + today() + '.csv', C.volunteerCSV(state), 'text/csv'); break;
       case 'exportSessions': download('tutorloop-sessions-' + today() + '.csv', C.sessionsCSV(state), 'text/csv'); break;
       case 'exportJson': download('tutorloop-backup-' + today() + '.json', JSON.stringify(state, null, 2), 'application/json'); break;
