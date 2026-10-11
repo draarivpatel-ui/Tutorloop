@@ -4,7 +4,7 @@
   "description": "The back office for student tutors: sessions, payments, parent updates, service hours.",
   "private": true,
   "scripts": {
-    "test": "node tests/core.test.js",
+    "test": "node tests/core.test.js && node tests/sw.test.js",
     "test:dom": "node tests/smoke.dom.js",
     "test:e2e": "python3 tests/e2e.py",
     "test:all": "npm test && npm run test:dom && npm run test:e2e",
