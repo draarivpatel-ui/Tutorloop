@@ -150,3 +150,6 @@ Not fixable from this repo: `https://aariv.me/tutorloop/` (lowercase) is a 404 b
 A landing page linked from the nav and the empty-state dashboard: the problem, how it works (4 steps that link into the app), who it's for, privacy, and a **business-model table** (Free / Pro $4 per month / Club $99 per school year) with fees calculated from Stripe's published US rates (2.9% + 30¢ + 0.7% Billing), so TutorLoop keeps $3.56 of a Pro month and $95.14 of a Club year. It also has a "Where we are today" section that says plainly: working prototype, **no paying customers yet**, simulated checkout. Covered by jsdom (honesty copy + fee math) and e2e (axe, overflow at 1280 and 390).
 
 **Tests after iteration 5:** unit 33/33, jsdom 19/19, e2e 64/64.
+
+## TODO for next cycle (from submission team, Oct 10)
+- core.js ~L309 and ~L328: payment reminder / parent update ends "You can pay by @aariv-tutoring." Add the payment method name (e.g. "Venmo @..."), fix before video recording.
