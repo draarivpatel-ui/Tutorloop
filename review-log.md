@@ -22,3 +22,13 @@ Shipped (pushed to draarivpatel-ui/Tutorloop, sw.js cache v6):
 - Polish: toast no longer squeezes to half the screen width on phones; nav label "Summary" so all 9 links fit at 1280px; "1 paid hour" grammar; mobile tfoot stacking.
 Tests: unit 47/47 (+6), jsdom 30/30 (+11), e2e 92/92 (+21). Docs: devpost.md, README.md, demo-script.md (new shot 3 quick start, shot 7 summary, shot 9 usage), pitch-outline.md test counts.
 Note: another process updated devpost.md/demo-script.md test counts (to 47/30) mid-cycle at ~7:36 PM CT despite the lock; reconciled.
+
+## Cycle 5 · Sun Oct 11 2026 11:45 AM–12:20 PM CT
+Strict-judge + real-user pass at 390 and 1280 px (EN, sample data and a 5,000-session stress dataset). Entry is already submitted, so changes are additive and none touch a flow shown in the video.
+Shipped (sw.js cache v7):
+- **Rounding bug:** exact half-cent amounts rounded down (5.02/hr x 15 min showed $1.25, not $1.26; about 3% of cent-precision rates). cents() now rounds on a 12-digit value. Found by comparing sessionAmount to integer math over 85,000 rate/minute pairs; 2,513 differed before, 0 after.
+- **Thousands separators:** money() prints $1,234.50 (it printed $1234.50 while the rate error already said "$1,000"); chart labels too.
+- **Long backlogs:** a payment reminder for 40+ unpaid sessions listed every session, and with 5,000 sessions the dashboard held 275 KB of "Remind" email links. Reminders now list the latest 12 sessions and roll older ones into one line (total unchanged); mailto() trims at 8,000 characters with a visible "shortened" note, so no mail app silently drops a link.
+- **Polish:** Settings/log checkboxes no longer squash to a 13 px box with centred two-line labels.
+Tests: unit 50/50 (+3), jsdom 30/30, e2e 96/96 (+4 scale checks: 5,000 sessions / 50 students re-render in ~0.2 s, separators, email links under 8,200 chars, 0 page errors).
+Not done / ideas: partial payments (credit toward next session); recurring weekly schedule.
