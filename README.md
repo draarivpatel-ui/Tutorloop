@@ -23,21 +23,23 @@ Tutoring-company software (scheduling and billing suites) is built for businesse
 | Feature | Details |
 |---|---|
 | **Dashboard** | Earned and collected this month, all-time unpaid balance, service hours (with goal progress), a 6-month earnings chart, a "Who owes you" list with Invoice / Remind / Mark paid buttons, and **Quick log** buttons that start from your last session with each student |
+| **30-second first run** | On an empty app, one quick-start form (student, rate, minutes, topics, how it went) creates the student and the first session, then the dashboard shows the drafted parent update, the invoice amount, and next steps |
 | **10-second session log** | Student, date, minutes (quick 30/45/60/90 chips), optional rate override, topics, notes, paid or volunteer, with a live amount preview |
 | **Smart parent updates** | Turns session topics and notes into a parent-ready progress email: topics ranked, a recency-weighted trend, the latest highlight, and the next focus. Presets for the last 30 days, this month, the last 90 days, or all sessions. **You can edit the text before you copy it or open it in your email app.** |
 | **Payment reminders** | One click opens a polite, itemised reminder (dates, minutes, amounts, total, and "You can pay with Venmo @handle") addressed to the parent. The payment app is a setting, guessed from the handle if blank |
 | **"Sent with TutorLoop" footer (optional)** | Off by default. Switch it on in Settings to end parent updates, reminders, and invoices with one plain link to TutorLoop. No tracking or referral code |
 | **Invoices** | Unpaid sessions roll into a clean invoice (Print / Save as PDF) with a stable invoice number |
 | **Service hours** | Volunteer sessions count as $0, track progress toward an optional hour goal, export to CSV, and print as a sponsor log with a signature line |
+| **Monthly summary** | Pick a month and one student (a family statement: sessions, topics, paid/unpaid, balance due, how to pay) or all students (a recap for you or your NHS sponsor, with service hours and a signature line when printed). Print / Save PDF, copy as text, or open in email |
 | **Your data, your device** | Everything stays in `localStorage`. JSON backup and restore, CSV export, undo for every change (toast button or Ctrl/Cmd+Z), archive/restore students, and permanent delete when a family asks |
-| **Freemium plans** | Free (3 active students), Pro, and Club, with the free limit enforced in the app. **Checkout is simulated, and no payment is taken.** |
+| **Freemium plans** | Free (3 active students), Pro, and Club, with the free limit enforced in the app. Settings shows your usage (e.g. 2 of 3 students) and what Pro costs in minutes of your own tutoring at your average rate. **Checkout is simulated, and no payment is taken.** |
 | **Works offline / installable** | A service worker caches the app shell, and the web manifest lets you add it to your home screen |
 
 ## Tech stack and architecture
 
 - **Vanilla HTML, CSS, and JavaScript.** No framework, no build step, no paid APIs, no server. Deploys as static files on GitHub Pages.
 - `js/core.js` holds **pure business logic** with no DOM access, so it runs in Node and is unit-tested: money math rounded to cents, stats, balances, invoices, CSV export with formula-injection protection, import validation and migration, payment reminders, and the progress-report engine.
-- `js/app.js` is a small **hash router** (`#dashboard`, `#log`, `#students`, `#reports`, `#invoices`, `#hours`, `#settings`) with view functions, delegated event handlers, and snapshot-based undo.
+- `js/app.js` is a small **hash router** (`#dashboard`, `#log`, `#students`, `#reports`, `#invoices`, `#hours`, `#summary`, `#settings`, `#about`) with view functions, delegated event handlers, and snapshot-based undo.
 - `sw.js` + `manifest.webmanifest`: offline app shell (network first, cache fallback), installable PWA.
 - **Chart**: drawn with the Canvas 2D API, with no chart library and a text alternative for screen readers.
 - **Persistence**: one versioned JSON document in `localStorage` (`tutorloop.v1`). Every load goes through `importState()`, which normalises types and drops bad rows.
@@ -65,9 +67,9 @@ The result is **$0 per report, no student data sent to a third party, and it wor
 
 | Suite | Command | What it covers |
 |---|---|---|
-| Unit (41 tests, no dependencies) | `npm test` | Money and rounding, validation (including impossible dates), plan limits, stats, balances, monthly series, goal progress, presets, sentiment and negation, report wording, reminders, payment-app wording, the opt-in footer, invoices, CSV escaping and **formula injection**, import normalisation, and a 5,000-session performance check |
-| DOM smoke (19 checks, jsdom) | `npm i && npm run test:dom` | Every route renders, forms, plan limit, **XSS escaping**, persistence, undo, bad URLs, pitch-page honesty and fee math |
-| End-to-end (71 checks, real headless Chromium, app served from a `/Tutorloop/` sub-path like production) | `pip install playwright && python -m playwright install chromium && python tests/e2e.py` | Real clicks with native form behaviour, decimal rates, XSS, undo (button and Ctrl+Z), CSV download, plan limit, archive/restore/delete, report presets and editing, backup round trip, corrupt-storage recovery, keyboard focus and skip link, **offline reload through the service worker**, **service worker scope, manifest paths and cache isolation on a shared origin**, payment-app setting and footer opt-in/out, sourced competitor prices on the pitch page, no console errors, **axe-core WCAG 2.1 AA: 0 violations on all 8 pages**, **no horizontal overflow at 1280px and 390px**, and print stylesheets |
+| Unit (47 tests, no dependencies) | `npm test` | Money and rounding, validation (including impossible dates), plan limits, stats, balances, monthly series, goal progress, presets, sentiment and negation, report wording, reminders, payment-app wording, the opt-in footer, monthly summaries and statements, Pro value math, invoices, CSV escaping and **formula injection**, import normalisation, and a 5,000-session performance check |
+| DOM smoke (30 checks, jsdom) | `npm i && npm run test:dom` | Every route renders, quick start and first-run card, toast close/Escape/removal, monthly summary, plan usage, forms, plan limit, **XSS escaping**, persistence, undo, bad URLs, pitch-page honesty and fee math |
+| End-to-end (92 checks, real headless Chromium, app served from a `/Tutorloop/` sub-path like production) | `pip install playwright && python -m playwright install chromium && python tests/e2e.py` | Real clicks with native form behaviour, the first-run quick start, toast auto-dismiss (and hover pause, close, Escape), the monthly summary, decimal rates, XSS, undo (button and Ctrl+Z), CSV download, plan limit, archive/restore/delete, report presets and editing, backup round trip, corrupt-storage recovery, keyboard focus and skip link, **offline reload through the service worker**, **service worker scope, manifest paths and cache isolation on a shared origin**, payment-app setting and footer opt-in/out, sourced competitor prices on the pitch page, no console errors, **axe-core WCAG 2.1 AA: 0 violations on all 9 pages plus the empty and first-run dashboards**, **no horizontal overflow at 1280px and 390px**, and print stylesheets |
 
 `docs/REVIEW_LOG.md` records the review loop used to harden the app: the problems found in each iteration and how each was fixed.
 
