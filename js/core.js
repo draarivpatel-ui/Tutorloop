@@ -26,11 +26,14 @@
 
   /** Round to cents to avoid floating-point drift. */
   function cents(n) {
-    return Math.round((Number(n) || 0) * 100) / 100;
+    // toPrecision(12) first, so an exact half-cent such as 5.02 x 15/60 = 1.255 (stored as 1.25499999...) rounds up to $1.26, not down to $1.25.
+    return Math.round(Number(((Number(n) || 0) * 100).toPrecision(12))) / 100;
   }
 
   function money(n) {
-    return '$' + cents(n).toFixed(2);
+    const v = cents(n), neg = v < 0;
+    const [whole, frac] = Math.abs(v).toFixed(2).split('.');
+    return (neg ? '-' : '') + '$' + whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '.' + frac;
   }
 
   /** "1 session", "2 sessions", "1 family", "3 families". */
@@ -365,6 +368,8 @@
   }
 
   /** A polite payment reminder for a family's unpaid sessions. Returns '' when nothing is owed. */
+  const REMINDER_MAX_LINES = 12;
+
   function reminderMessage(state, clientId) {
     const c = clientById(state, clientId);
     if (!c) return '';
@@ -375,7 +380,11 @@
     const first = String(c.name).trim().split(/\s+/)[0];
     const lines = [c.parentName ? 'Hi ' + c.parentName + ',' : 'Hi,', '',
       'Just a friendly reminder about ' + first + "'s tutoring balance of " + money(total) + ' for ' + plural(items.length, 'session') + ':', ''];
-    items.forEach(s => lines.push('• ' + fmtDate(s.date) + ': ' + s.minutes + ' min' + (s.topics ? ' (' + s.topics + ')' : '') + ', ' + money(sessionAmount(s, c))));
+    // A long backlog (say 60 unpaid sessions) would make a message too long for an email link, so the oldest ones roll up into one line. The total above always covers every session.
+    const listed = items.length > REMINDER_MAX_LINES ? items.slice(items.length - REMINDER_MAX_LINES) : items;
+    const rolled = items.slice(0, items.length - listed.length);
+    if (rolled.length) lines.push('• ' + plural(rolled.length, 'earlier session') + ' (' + fmtDate(rolled[0].date) + ' to ' + fmtDate(rolled[rolled.length - 1].date) + '): ' + money(rolled.reduce((a, s) => a + sessionAmount(s, c), 0)));
+    listed.forEach(s => lines.push('• ' + fmtDate(s.date) + ': ' + s.minutes + ' min' + (s.topics ? ' (' + s.topics + ')' : '') + ', ' + money(sessionAmount(s, c))));
     lines.push('');
     const pay = paymentSentence(state.profile);
     if (pay) lines.push(pay);
