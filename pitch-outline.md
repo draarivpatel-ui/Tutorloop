@@ -22,7 +22,7 @@ Students who tutor run a real small business, but they do it with tools built fo
 ## 2. Solution
 One free web app that does the four jobs in one loop: **Log → Get paid → Update parents → Prove hours.**
 - **10-second session log** with duration chips, topics, notes, paid/volunteer, and a live amount preview. Quick log repeats your last session with a student.
-- **Get paid:** a "Who owes you" list, one-click itemised payment reminders that open in your email app, printable invoices.
+- **Get paid:** a "Who owes you" list (with part-paid amounts like "$12.34 of $90.00 paid"), a **Record a payment** form that covers the oldest sessions first and keeps the remainder as a part payment, one-click itemised payment reminders that open in your email app, printable invoices, and a family statement that lists the payments received that month.
 - **Update parents:** an on-device engine turns your own session notes into an editable progress update (topics, recency-weighted trend, latest highlight, next focus, balance).
 - **Prove hours:** volunteer sessions tracked toward a goal, exported as CSV or a printable log with a sponsor signature line.
 - **Private by design:** no account, no server; data stays in the browser. That matters because tutors handle information about minors. Undo on every action, JSON backup/restore, a "You're exploring sample data" bar with a one-click "Start fresh with my own students" (undoable), works offline after the first visit, installable on a phone.
@@ -65,7 +65,7 @@ The same four steps appear in order on the app's Why TutorLoop page under "Who p
 ## 6. Traction (stated honestly)
 **None yet.** No users, no paying customers, no pilots, no waitlist, no usage numbers. What exists:
 - A working, publicly deployed product at https://aariv.me/Tutorloop/.
-- 58 unit tests, 38 DOM checks, and 112 headless-Chromium end-to-end checks, all passing on Oct 11, 2026 (~1:15 PM ET; re-run before quoting).
+- 60 unit tests, 45 DOM checks, and 128 headless-Chromium end-to-end checks, all passing on Oct 11, 2026 (~1:35 PM ET; re-run before quoting).
 - An in-app pitch page that states the same thing: "No paying customers yet, and no usage numbers to claim."
 
 ## 7. Technology (why it can scale cheaply)
