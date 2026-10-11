@@ -123,6 +123,34 @@ try:
         go(pg, 'invoices/doesnotexist')
         check('unknown invoice id falls back gracefully', 'not found' in pg.inner_text('#app') and pg.locator('.invoice-doc').count() == 1)
 
+        # payment wording + opt-in "Sent with TutorLoop" footer, set from Settings
+        go(pg, 'settings')
+        prev = pg.inner_text('#payPreview')
+        check('settings previews the payment sentence (no "pay by @handle")', 'You can pay with Venmo @aariv-tutoring.' in prev, prev)
+        pg.fill('#p-venmo', 'tutor@example.com'); pg.fill('#p-paymethod', 'Zelle'); pg.wait_for_timeout(50)
+        check('payment preview updates live as you type', 'You can pay with Zelle tutor@example.com.' in pg.inner_text('#payPreview'), pg.inner_text('#payPreview'))
+        check('referral footer is off until the tutor opts in', not pg.is_checked('#p-referral'))
+        pg.check('#p-referral'); pg.click('#profileForm button[type=submit]'); pg.wait_for_timeout(200)
+        prof = pg.evaluate("JSON.parse(localStorage.getItem('tutorloop.v1')).profile")
+        check('payment app and footer choice are saved', prof.get('payMethod') == 'Zelle' and prof.get('referralFooter') is True, prof)
+        go(pg, 'invoices/c_ethan')
+        inv = pg.inner_text('.invoice-doc')
+        href = pg.get_attribute('a.btn.ghost[href^="mailto:"]', 'href') or ''
+        check('invoice and reminder use the configured app, and carry the opted-in footer',
+              'Pay with: Zelle tutor@example.com' in inv and 'Sent with TutorLoop' in inv
+              and 'Zelle%20tutor%40example.com' in href and 'Sent%20with%20TutorLoop' in href, inv[-200:])
+        go(pg, 'settings'); pg.uncheck('#p-referral'); pg.click('#profileForm button[type=submit]'); pg.wait_for_timeout(200)
+        go(pg, 'invoices/c_ethan')
+        check('turning the footer off removes it', 'Sent with TutorLoop' not in pg.inner_text('.invoice-doc'))
+
+        # Why TutorLoop: sourced competitor prices
+        go(pg, 'about')
+        about = pg.inner_text('#app')
+        check('about page compares TutorBird and Teachworks list prices with sources',
+              all(x in about for x in ('$16.95/mo', '$4.95 per additional tutor', '$16.49/mo', '$0.32 per student lesson', '$19.05'))
+              and pg.locator('a[href="https://www.tutorbird.com/pricing/"]').count() == 1
+              and pg.locator('a[href="https://teachworks.com/pricing"]').count() == 1, about[-600:])
+
         # restore backup (round trip)
         go(pg, 'settings')
         with pg.expect_download() as dl: pg.click('[data-act=exportJson]')
