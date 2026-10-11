@@ -315,5 +315,50 @@ test('performance: stats and balances over 5,000 sessions stay fast', () => {
   assert.ok(ms < 1500, 'took ' + ms + 'ms');
 });
 
+/* monthly summary + Pro value */
+test('summaryMonths lists months with sessions newest first and always includes the current month', () => {
+  assert.deepStrictEqual(C.summaryMonths(demo(), '2026-10'), ['2026-10', '2026-09', '2026-08']);
+  assert.deepStrictEqual(C.summaryMonths(C.emptyState(), '2026-10'), ['2026-10']);
+});
+test('monthSummary totals split paid vs volunteer tutoring and add up per student', () => {
+  const m = C.monthSummary(demo(), '2026-09');
+  assert.strictEqual(m.totals.sessions, 6);
+  assert.strictEqual(m.totals.billed, 140); assert.strictEqual(m.totals.paid, 70); assert.strictEqual(m.totals.unpaid, 70);
+  assert.strictEqual(m.totals.volunteerHours, 1.5); assert.strictEqual(m.totals.paidHours, 5);
+  assert.strictEqual(m.students.length, 3);
+  assert.strictEqual(C.cents(m.students.reduce((a, r) => a + r.billed, 0)), m.totals.billed);
+  assert.deepStrictEqual(m.students.map(r => r.client.name), ['Ethan Brooks', 'Maya Chen', 'Sofia Ramirez']);
+});
+test('monthSummary for one student includes the all-time balance due', () => {
+  const m = C.monthSummary(demo(), '2026-09', 'c_maya');
+  assert.strictEqual(m.totals.sessions, 2); assert.strictEqual(m.totals.unpaid, 25); assert.strictEqual(m.balanceAll, 25);
+  assert.strictEqual(C.monthSummary(demo(), '2026-09').balanceAll, null);
+});
+test('summaryText: family statement has the session log, balance, and payment sentence', () => {
+  const t = C.summaryText(demo(), '2026-09', 'c_maya');
+  assert.ok(t.startsWith('Hi Mrs. Chen,'), t);
+  assert.ok(t.includes("Maya's Algebra 1 tutoring summary for September 2026"));
+  assert.ok(t.includes('• Sep 22: 60 min (systems of equations, word problems), $25.00, unpaid'));
+  assert.ok(t.includes('Total balance due today: $25.00. You can pay with Venmo @aariv-tutoring.'));
+});
+test('summaryText: whole-month recap covers service hours; empty month and volunteer-only student read correctly', () => {
+  const s = demo();
+  const all = C.summaryText(s, '2026-09');
+  assert.ok(all.includes('Volunteer tutoring (service hours): 1.5 hours in 2 sessions'), all);
+  assert.ok(all.includes('• Sofia Ramirez: 2 sessions, 1.5 hours, 1.5 volunteer hours'));
+  assert.ok(C.summaryText(s, '2025-01').includes('No sessions were logged in January 2025.'));
+  const sofia = C.summaryText(s, '2026-09', 'c_sofia');
+  assert.ok(sofia.includes('Volunteer (no charge): 2 sessions') && !sofia.includes('balance'), sofia);
+  s.profile.referralFooter = true;
+  assert.ok(C.summaryText(s, '2026-09').endsWith('--\nSent with TutorLoop, a free app for student tutors: ' + C.APP_URL));
+});
+test('proValue expresses the Pro price in minutes at the tutor\'s average paid rate', () => {
+  const s = C.emptyState();
+  assert.strictEqual(C.proValue(s, 4), null);
+  s.clients.push({ id: 'a', name: 'A', rate: 24 });
+  s.sessions.push({ id: '1', clientId: 'a', date: '2026-10-01', minutes: 60 }, { id: '2', clientId: 'a', date: '2026-10-02', minutes: 60, volunteer: true });
+  assert.deepStrictEqual(C.proValue(s, 4), { rate: 24, minutes: 10 });
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
