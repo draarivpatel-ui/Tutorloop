@@ -396,6 +396,17 @@ console.log(JSON.stringify(s));""", str(ROOT / 'js' / 'core.js')]).decode()
             pg.evaluate("location.hash = 'invoices/c_maya'"); pg.wait_for_timeout(300); pg.focus('#invPick'); pg.keyboard.press('ArrowDown'); pg.wait_for_timeout(300)
             check(f'kbd {w}px: arrowing the student picker switches invoice and keeps focus on the picker',
                   pg.evaluate("location.hash") != '#invoices/c_maya' and pg.evaluate(AE) == 'invPick', (pg.evaluate("location.hash"), pg.evaluate(AE)))
+            pg.evaluate("location.hash = 'summary'"); pg.wait_for_timeout(300)
+            h0 = pg.evaluate("location.hash"); pg.focus('#sumMonth'); pg.keyboard.press('ArrowDown'); pg.wait_for_timeout(300)
+            if pg.evaluate("location.hash") == h0: pg.keyboard.press('ArrowUp'); pg.wait_for_timeout(300)
+            check(f'kbd {w}px: arrowing the Summary month picker switches month and keeps focus on the picker',
+                  pg.evaluate("location.hash") != h0 and pg.evaluate("location.hash").startswith('#summary/') and pg.evaluate(AE) == 'sumMonth', (h0, pg.evaluate("location.hash"), pg.evaluate(AE)))
+            h1 = pg.evaluate("location.hash"); pg.focus('#sumWho'); pg.keyboard.press('ArrowDown'); pg.wait_for_timeout(300)
+            check(f'kbd {w}px: arrowing the Summary student picker switches to a family statement and keeps focus on the picker',
+                  pg.evaluate("location.hash") != h1 and pg.evaluate("location.hash").count('/') == 2 and pg.evaluate(AE) == 'sumWho', (h1, pg.evaluate("location.hash"), pg.evaluate(AE)))
+            pg.keyboard.press('ArrowUp'); pg.wait_for_timeout(300)
+            check(f'kbd {w}px: arrowing the Summary student picker back to All students keeps focus on the picker',
+                  pg.evaluate("location.hash").count('/') == 1 and pg.evaluate(AE) == 'sumWho', (pg.evaluate("location.hash"), pg.evaluate(AE)))
             check(f'kbd {w}px: no console errors in the keyboard payment pass', not kb_console, kb_console)
             ctx.close()
 
