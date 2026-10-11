@@ -125,6 +125,9 @@ canvas { display: block; width: 100%; height: 220px; }
 .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px); display: flex; gap: 14px; align-items: center; max-width: calc(100% - 32px);
   background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 10px; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 30; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.toast[hidden] { display: none; }
+.toast-close { background: transparent; border: 0; color: #cbd5e1; font: inherit; font-size: 20px; line-height: 1; cursor: pointer; padding: 2px 6px; min-width: 32px; min-height: 32px; border-radius: 6px; }
+.toast-close:hover, .toast-close:focus-visible { color: #fff; background: rgba(255,255,255,.12); }
 .toast-undo { background: transparent; border: 0; color: #a5b4fc; font: inherit; font-weight: 700; cursor: pointer; padding: 4px; }
 
 .problems { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
@@ -133,8 +136,8 @@ canvas { display: block; width: 100%; height: 220px; }
 .plan .per { font-size: 14px; font-weight: 500; color: var(--muted); }
 .plan ul { padding-left: 18px; margin: 10px 0 14px; }
 .plan.current { outline: 2px solid var(--brand); }
-.invoice-doc { max-width: 720px; }
-.invoice-doc .head { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.invoice-doc, .summary-doc { max-width: 760px; }
+.invoice-doc .head, .summary-doc .head { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .print-only { display: none; }
 .foot { text-align: center; color: var(--muted); font-size: 13px; padding: 24px; }
 
@@ -148,7 +151,7 @@ canvas { display: block; width: 100%; height: 220px; }
   .kpi .value { font-size: 22px; }
   .card { padding: 14px; }
   table.stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  table.stack, table.stack tbody, table.stack tr, table.stack td { display: block; width: 100%; }
+  table.stack, table.stack tbody, table.stack tfoot, table.stack tr, table.stack td { display: block; width: 100%; }
   table.stack tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
   table.stack td { border: 0; padding: 3px 0; text-align: left; display: flex; gap: 12px; justify-content: space-between; }
   table.stack td[data-label]::before { content: attr(data-label); color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; flex: none; }
@@ -175,8 +178,8 @@ canvas { display: block; width: 100%; height: 220px; }
   .row-actions .btn + .btn { margin-left: 0; }
   .toolbar select { max-width: none; width: 100%; }
   form .row .wide-m { grid-column: 1 / -1; }
-  .invoice-doc .head { flex-direction: column; }
-  .invoice-doc .right { text-align: left; }
+  .invoice-doc .head, .summary-doc .head { flex-direction: column; }
+  .invoice-doc .right, .summary-doc .right { text-align: left; }
   .sub-inline { display: block; margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
@@ -193,3 +196,26 @@ canvas { display: block; width: 100%; height: 220px; }
 #profileForm .check { margin-top: 14px; }
 #profileForm #referralHelp { margin-top: 4px; }
 .invoice-doc .referral { font-size: 12px; margin-top: 8px; }
+
+/* quick start + first-run callout */
+.quickstart { border-color: #c7d2fe; margin-bottom: 16px; }
+.quickstart h2 .opt { font-size: 14px; }
+.quickstart .check { margin-top: 10px; }
+.firstrun { background: linear-gradient(135deg, #ecfdf5, #eef2ff); border-color: #a7f3d0; margin-bottom: 16px; }
+.firstrun h2:focus { outline: none; }
+.h-s { font-size: 15px; margin: 4px 0 8px; }
+.excerpt { white-space: pre-wrap; font: inherit; font-size: 14px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 0 0 8px; max-height: 210px; overflow: auto; }
+.plain-list { padding-left: 18px; margin: 0; }
+.plain-list li { margin: 6px 0; }
+/* monthly summary + plan usage */
+.summary-doc .kpis { margin: 4px 0 14px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.summary-doc .kpi { background: var(--brand-tint, #eef2ff); border: 0; }
+.summary-doc table tfoot td { border-top: 2px solid var(--line); }
+.summary-doc .referral { font-size: 12px; margin-top: 8px; }
+.usage { margin-bottom: 16px; max-width: 760px; }
+.usage h3 { margin-top: 0; }
+@media print {
+  .summary-doc { max-width: none; }
+  .summary-doc .kpi { background: none; border: 1px solid #ddd; padding: 8px; }
+  .summary-doc .kpis { grid-template-columns: repeat(4, 1fr); }
+}
