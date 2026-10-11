@@ -500,5 +500,29 @@ test('CSV export carries the part-paid amount', () => {
   assert.ok(rows.find(r => r.startsWith('2026-09-03')).endsWith(',0'));
 });
 
+test('balances report the part-paid amount against the unpaid sessions ("$15.00 of $50.00 paid")', () => {
+  const st = payState();
+  assert.strictEqual(bal(st, 'c1').partPaid, 0); assert.strictEqual(bal(st, 'c1').unpaidBilled, 75);
+  C.applyPayment(st, 'c1', C.planPayment(st, 'c1', 40), '2026-10-11');   // s1 settled, s2 part-paid $15
+  const b = bal(st, 'c1');
+  assert.strictEqual(b.partPaid, 15); assert.strictEqual(b.unpaidBilled, 50); assert.strictEqual(b.owed, 35);
+  assert.strictEqual(bal(st, 'c2').partPaid, 0, 'other families untouched');
+});
+test('monthly family statement lists the payments received that month, and only that family and month', () => {
+  const st = payState();
+  C.applyPayment(st, 'c1', C.planPayment(st, 'c1', 10), '2026-09-20');
+  C.applyPayment(st, 'c1', C.planPayment(st, 'c1', 12.5), '2026-09-28');
+  C.applyPayment(st, 'c1', C.planPayment(st, 'c1', 5), '2026-10-02');
+  C.applyPayment(st, 'c2', C.planPayment(st, 'c2', 7), '2026-09-21');
+  const m = C.monthSummary(st, '2026-09', 'c1');
+  assert.deepStrictEqual(m.payments.map(x => [x.date, x.amount]), [['2026-09-20', 10], ['2026-09-28', 12.5]]);
+  assert.strictEqual(m.paymentsTotal, 22.5);
+  const txt = C.summaryText(st, '2026-09', 'c1');
+  assert.ok(txt.includes('Payments received in September 2026:\n• Sep 20: $10.00\n• Sep 28: $12.50\nTotal received: $22.50'), txt);
+  const oct = C.summaryText(st, '2026-10', 'c1');
+  assert.ok(oct.includes('There were no tutoring sessions') && oct.includes('Payments received in October 2026:\n• Oct 2: $5.00') && !oct.includes('Total received'), oct);
+  assert.ok(!C.summaryText(payState(), '2026-09', 'c1').includes('Payments received'), 'no section without payments');
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
