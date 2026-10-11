@@ -1,10 +1,14 @@
 # TutorLoop
 
+**Live demo:** https://aariv.me/Tutorloop/ · **Why TutorLoop / pricing:** https://aariv.me/Tutorloop/#about (GitHub Pages on a custom domain; the github.io address redirects there). Click **"Try it with sample data"** to explore. The sample students are fictional.
+
 **The back office for student tutors.** Log a session in about 10 seconds, see who still owes you, send parents a progress update or a payment reminder in one click, print an invoice, and export volunteer hours for your NHS sponsor. It's free and private, and it works offline after your first visit.
 
-Built by Aariv Patel for the [Next Founders Hackathon](https://next-founders.devpost.com/) (October 2026).
+![TutorLoop dashboard welcome screen with the 30-second quick-start form](docs/hero.png)
 
-**Live demo:** https://aariv.me/Tutorloop/ (GitHub Pages on a custom domain; the github.io address redirects there). **Why TutorLoop / pricing:** https://aariv.me/Tutorloop/#about. Click **"Try it with sample data"** to explore. The sample students are fictional.
+*Screenshot of the live site (Oct 2026), taken with headless Chromium.*
+
+Built by Aariv Patel for the [Next Founders Hackathon](https://next-founders.devpost.com/) (October 2026).
 
 ---
 
@@ -18,7 +22,7 @@ Lots of high school and college students tutor younger kids in math, reading, or
 
 Tutoring-company software (scheduling and billing suites) is built for businesses with staff. It's far more than a 16-year-old with four students needs or can pay for.
 
-## What it does
+## Features
 
 | Feature | Details |
 |---|---|
@@ -71,7 +75,15 @@ The result is **$0 per report, no student data sent to a third party, and it wor
 | DOM smoke (30 checks, jsdom) | `npm i && npm run test:dom` | Every route renders, quick start and first-run card, toast close/Escape/removal, monthly summary, plan usage, forms, plan limit, **XSS escaping**, persistence, undo, bad URLs, pitch-page honesty and fee math |
 | End-to-end (92 checks, real headless Chromium, app served from a `/Tutorloop/` sub-path like production) | `pip install playwright && python -m playwright install chromium && python tests/e2e.py` | Real clicks with native form behaviour, the first-run quick start, toast auto-dismiss (and hover pause, close, Escape), the monthly summary, decimal rates, XSS, undo (button and Ctrl+Z), CSV download, plan limit, archive/restore/delete, report presets and editing, backup round trip, corrupt-storage recovery, keyboard focus and skip link, **offline reload through the service worker**, **service worker scope, manifest paths and cache isolation on a shared origin**, payment-app setting and footer opt-in/out, sourced competitor prices on the pitch page, no console errors, **axe-core WCAG 2.1 AA: 0 violations on all 9 pages plus the empty and first-run dashboards**, **no horizontal overflow at 1280px and 390px**, and print stylesheets |
 
+All three suites were re-run on Oct 10, 2026: **47/47 unit, 30/30 DOM, 92/92 end-to-end passing**.
+
 `docs/REVIEW_LOG.md` records the review loop used to harden the app: the problems found in each iteration and how each was fixed.
+
+## Data sources
+
+- **No external data APIs.** Everything the app shows comes from what the tutor types in, stored in their own browser.
+- **Sample data** ("Try it with sample data") is fictional students and sessions built into the app.
+- **Competitor prices** on the pitch page (`#about`) are TutorBird's and Teachworks' list prices, each linked to the vendor's own pricing page ([tutorbird.com/pricing](https://www.tutorbird.com/pricing/), [teachworks.com/pricing](https://teachworks.com/pricing)); the end-to-end suite checks the figures and links are there.
 
 ## Security and privacy
 
@@ -116,6 +128,10 @@ Repo **Settings → Pages → Build and deployment → Source: Deploy from a bra
 - Payment is tracked, not processed. Reminders and updates open in your own email app.
 - Plan upgrades are simulated. "Cloud sync", "scheduled reminders", and the "Club sponsor dashboard" are roadmap items.
 - The update engine is rule-based and English-only. It's good at summarising notes, but it doesn't understand them like a person would, which is why every message is editable.
+
+## AI assistance
+
+This project was built with help from an AI assistant (Hark), which drafted code, tests and copy under Aariv Patel's direction. The app itself calls no AI service: parent updates come from the on-device, rule-based engine described above.
 
 ## Roadmap
 
