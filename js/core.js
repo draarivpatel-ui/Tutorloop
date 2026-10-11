@@ -174,7 +174,10 @@
         const owed = dueTotal(unpaid, c);
         const last = ss.map(s => s.date).sort().pop() || null;
         const oldestUnpaid = unpaid.map(s => s.date).sort()[0] || null;
-        return { client: c, owed: cents(owed), sessions: ss.length, unpaidSessions: unpaid.length, lastSession: last, oldestUnpaid };
+        // Part payments already received on the still-unpaid sessions, and what those sessions cost in full ("$10.00 of $25.00 paid").
+        const partPaid = cents(unpaid.reduce((a, s) => a + Math.round((Number(s.partPaid) || 0) * 100), 0) / 100);
+        const unpaidBilled = cents(unpaid.reduce((a, s) => a + Math.round(sessionAmount(s, c) * 100), 0) / 100);
+        return { client: c, owed: cents(owed), sessions: ss.length, unpaidSessions: unpaid.length, lastSession: last, oldestUnpaid, partPaid, unpaidBilled };
       })
       .sort((a, b) => b.owed - a.owed || String(a.client.name).localeCompare(String(b.client.name)));
   }
@@ -421,7 +424,8 @@
 
   /**
    * One month in numbers, for every student (clientId falsy) or one student.
-   * "Paid" and "unpaid" are each session's current status: TutorLoop does not record payment dates.
+   * "Paid" and "unpaid" are each session's current status. `payments` lists the amounts recorded with
+   * "Record a payment" whose date falls in the month (sessions marked paid directly have no payment entry).
    */
   function monthSummary(state, month, clientId) {
     const ss = state.sessions
@@ -451,7 +455,10 @@
       const c = clientById(state, clientId);
       balanceAll = dueTotal(state.sessions.filter(s => s.clientId === clientId && !s.paid && !s.volunteer), c);
     }
-    return { month, clientId: clientId || '', totals, students, sessions: ss, topics: topicList(ss), balanceAll };
+    const payments = (state.payments || []).filter(x => monthKey(x.date) === month && (!clientId || x.clientId === clientId))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const paymentsTotal = cents(payments.reduce((a, x) => a + Math.round(cents(x.amount) * 100), 0) / 100);
+    return { month, clientId: clientId || '', totals, students, sessions: ss, topics: topicList(ss), balanceAll, payments, paymentsTotal };
   }
 
   /**
@@ -486,6 +493,11 @@
             lines.push('Total balance due today: ' + money(m.balanceAll) + '.' + (pay ? ' ' + pay : ''));
           } else lines.push('Nothing is due. Thank you!');
         }
+      }
+      if (m.payments.length) {
+        lines.push('', 'Payments received in ' + label + ':');
+        m.payments.forEach(x => lines.push('• ' + fmtDate(x.date) + ': ' + money(x.amount)));
+        if (m.payments.length > 1) lines.push('Total received: ' + money(m.paymentsTotal));
       }
       lines.push('', 'Thanks,', tutor);
     } else {
