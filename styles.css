@@ -73,8 +73,8 @@ input, select { height: 42px; }
 input[type=checkbox] { height: 18px; }
 textarea { min-height: 84px; resize: vertical; }
 .small { font-size: 13px; }
-.check { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 14px; margin: 0; }
-.check input { width: 18px; height: 18px; min-height: 0; accent-color: var(--brand); }
+.check { display: flex; align-items: flex-start; gap: 8px; font-weight: 500; font-size: 14px; margin: 0; }
+.check input { width: 18px; height: 18px; min-height: 0; flex: none; margin: 1px 0 0; accent-color: var(--brand); }
 .form-errors ul { color: var(--bad); margin: 0 0 12px; padding: 10px 12px 10px 28px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 9px; }
 .form-errors:focus { outline: none; }
 .preview { color: var(--ink); font-weight: 600; margin: 4px 0 0; min-height: 1.5em; }
