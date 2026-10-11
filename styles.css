@@ -190,3 +190,6 @@ canvas { display: block; width: 100%; height: 220px; }
   a { color: inherit; text-decoration: none; }
   @page { margin: 16mm; }
 }
+#profileForm .check { margin-top: 14px; }
+#profileForm #referralHelp { margin-top: 4px; }
+.invoice-doc .referral { font-size: 12px; margin-top: 8px; }
