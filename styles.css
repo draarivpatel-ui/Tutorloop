@@ -217,6 +217,16 @@ canvas { display: block; width: 100%; height: 220px; }
 .usage { margin-bottom: 16px; max-width: 760px; }
 .usage h3 { margin-top: 0; }
 @media print {
+  /* long invoices / statements: dates and amounts on one line, rows never split, the header repeats on every page,
+     but the total prints once after the last row (a tfoot repeats per page in Chromium and reads like a page subtotal) */
+  .invoice-doc th, .invoice-doc td, .summary-doc th, .summary-doc td { padding: 5px 8px; line-height: 1.3; }
+  .invoice-doc td, .summary-doc td { font-size: 10.5pt; }
+  .invoice-doc td:first-child, .invoice-doc td.num, .invoice-doc th, .summary-doc td.num { white-space: nowrap; }
+  .invoice-doc thead, .summary-doc thead { display: table-header-group; }
+  .invoice-doc tfoot, .summary-doc tfoot { display: table-row-group; }
+  .invoice-doc tr, .summary-doc tr { break-inside: avoid; }
+  .invoice-doc tfoot tr, .summary-doc tfoot tr { break-before: avoid; }
+  @page { @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 9pt system-ui, sans-serif; color: #6b7280; } }
   .summary-doc { max-width: none; }
   .summary-doc .kpi { background: none; border: 1px solid #ddd; padding: 8px; }
   .summary-doc .kpis { grid-template-columns: repeat(4, 1fr); }
