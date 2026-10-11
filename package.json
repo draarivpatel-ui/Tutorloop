@@ -7,7 +7,8 @@
     "test": "node tests/core.test.js && node tests/sw.test.js",
     "test:dom": "node tests/smoke.dom.js",
     "test:e2e": "python3 tests/e2e.py",
-    "test:all": "npm test && npm run test:dom && npm run test:e2e",
+    "test:print": "python3 tests/print_test.py",
+    "test:all": "npm test && npm run test:dom && npm run test:e2e && npm run test:print",
     "start": "python3 -m http.server 8080"
   },
   "devDependencies": {
