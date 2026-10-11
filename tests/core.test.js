@@ -10,6 +10,34 @@ function test(name, fn) {
 const demo = () => C.demoState('2026-10-10');
 
 /* money */
+test('reminder for a long backlog rolls older sessions into one line and keeps the total', () => {
+  const st = C.emptyState(); st.profile.name = 'Aariv';
+  const c = { id: 'c1', name: 'Ethan Brooks', rate: 30, parentName: 'Mrs. Brooks' }; st.clients.push(c);
+  for (let i = 0; i < 40; i++) st.sessions.push({ id: 's' + i, clientId: 'c1', date: C.addDays('2026-08-01', i), minutes: 60, topics: 'fractions', notes: '', paid: false, volunteer: false });
+  const msg = C.reminderMessage(st, 'c1');
+  assert.ok(msg.includes('$1,200.00 for 40 sessions'), msg);
+  assert.ok(/• 28 earlier sessions \(.* to .*\): \$840\.00/.test(msg), msg);
+  assert.strictEqual(msg.split('\n').filter(l => l.startsWith('• ') && l.includes(' min')).length, 12);
+  assert.ok(msg.length < 1500, 'stays short: ' + msg.length);
+  const few = C.reminderMessage(st, 'c1').includes('earlier session');
+  st.sessions = st.sessions.slice(0, 5);
+  assert.ok(few && !C.reminderMessage(st, 'c1').includes('earlier session'));
+});
+test('exact half-cent amounts round up (5.02/hr x 15 min = $1.26), never down', () => {
+  assert.strictEqual(C.sessionAmount({ minutes: 15 }, { rate: 5.02 }), 1.26);
+  assert.strictEqual(C.sessionAmount({ minutes: 45 }, { rate: 5.02 }), 3.77);
+  assert.strictEqual(C.sessionAmount({ minutes: 90 }, { rate: 5.05 }), 7.58);
+  assert.strictEqual(C.cents(1.005), 1.01);
+  assert.strictEqual(C.cents(0), 0);
+});
+test('money groups thousands with commas, keeps two decimals, and handles junk', () => {
+  assert.strictEqual(C.money(1234.5), '$1,234.50');
+  assert.strictEqual(C.money(1000000), '$1,000,000.00');
+  assert.strictEqual(C.money(999.999), '$1,000.00');
+  assert.strictEqual(C.money(115), '$115.00');
+  assert.strictEqual(C.money(-5), '-$5.00');
+  assert.strictEqual(C.money(undefined), '$0.00');
+});
 test('session amount uses student rate and minutes', () => {
   assert.strictEqual(C.sessionAmount({ minutes: 90 }, { rate: 30 }), 45);
 });
