@@ -593,7 +593,9 @@
       rate: s.rate == null || s.rate === '' || isNaN(Number(s.rate)) ? null : Math.max(0, Number(s.rate)),
       topics: str(s.topics, 300), notes: str(s.notes, 2000), paid: !!s.paid, volunteer: !!s.volunteer
     }));
-    return { version: SCHEMA_VERSION, profile, clients, sessions };
+    const out = { version: SCHEMA_VERSION, profile, clients, sessions };
+    if (data.sample === true) out.sample = true;   // made with "Try it with sample data"; the app shows a "Start fresh" bar
+    return out;
   }
 
   /* ---------- demo data ---------- */
@@ -621,6 +623,7 @@
     add(sofia, 35, 45, 'proofs', 'Confused by two-column proofs', false, true);
     add(sofia, 20, 45, 'proofs, congruence', 'Better at congruence shortcuts', false, true);
     add(sofia, 6, 45, 'triangle congruence', 'Solid on SAS and ASA now', false, true);
+    st.sample = true;
     return st;
   }
 
