@@ -63,7 +63,7 @@ Freemium, with a B2B2C channel through school clubs.
 ## 6. Traction (stated honestly)
 **None yet.** No users, no paying customers, no pilots, no waitlist, no usage numbers. What exists:
 - A working, publicly deployed product at https://aariv.me/Tutorloop/.
-- 47 unit tests, 30 DOM checks, and 92 real-browser end-to-end checks, all passing on Oct 10, 2026 (re-run before quoting).
+- 50 unit tests, 30 DOM checks, and 96 real-browser end-to-end checks, all passing on Oct 10, 2026 (re-run before quoting).
 - An in-app pitch page that states the same thing: "No paying customers yet, and no usage numbers to claim."
 
 ## 7. Technology (why it can scale cheaply)
