@@ -26,6 +26,8 @@ nav a:hover, nav a.active { background: var(--brand-tint); color: var(--brand); 
 
 .banner { max-width: 1080px; margin: 12px auto 0; padding: 10px 14px; display: flex; gap: 12px; align-items: center; justify-content: space-between; background: #fef3c7; color: #78350f; border: 1px solid #fcd34d; border-radius: 10px; }
 .banner[hidden] { display: none; }
+.samplebar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; margin: 0 0 14px; padding: 10px 14px; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 10px; color: #312e81; font-size: 14px; }
+.samplebar p { margin: 0; flex: 1 1 260px; }
 
 main { max-width: 1080px; margin: 0 auto; padding: 24px; }
 h1 { font-size: 26px; margin: 0 0 4px; }
@@ -97,7 +99,7 @@ textarea { min-height: 84px; resize: vertical; }
 .actions.center { justify-content: center; }
 
 .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #f3f4f6; color: #374151; border: 0; font-family: inherit; }
-button.pill { cursor: pointer; }
+button.pill { cursor: pointer; min-height: 24px; min-width: 44px; } /* WCAG 2.2 target size: the paid/unpaid toggle is a real button */
 .pill.paid { background: #d1fae5; color: #065f46; } .pill.unpaid { background: #fef3c7; color: #92400e; } .pill.vol { background: #e0e7ff; color: #3730a3; }
 button.pill.unpaid:hover { background: #fde68a; } button.pill.paid:hover { background: #a7f3d0; }
 .tag { display: inline-block; font-size: 11px; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; margin-left: 4px; }
@@ -144,7 +146,7 @@ canvas { display: block; width: 100%; height: 220px; }
 /* phones: stack wide tables into labelled rows, tighten spacing */
 @media (max-width: 640px) {
   .topbar { flex-direction: column; align-items: stretch; padding: 10px 12px 6px; gap: 6px; }
-  nav { margin: 0 -12px; padding: 0 12px 4px; }
+  nav { margin: 0 -12px; padding: 0 32px 4px 12px; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); } /* fade hints that the menu scrolls */
   main { padding: 16px 12px; }
   h1 { font-size: 23px; }
   .kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
