@@ -514,6 +514,40 @@ console.log(JSON.stringify(s));""", str(ROOT / 'js' / 'core.js')]).decode()
         check('duplicate-name backup: no page errors', not errs, str(errs))
         ctx.close()
 
+        # Students page keyboard pass at 390 px: an archived student shares a name with an active one.
+        # Restore by keyboard only; focus must land on the Students heading (not <body>), the toast says so once
+        # through its own polite status region, the duplicate-name notice stays a single status region, and
+        # the archived tag shows on the owes list until the restore.
+        dup2 = {'version': 1, 'profile': {'plan': 'pro'}, 'clients': [
+            {'id': 'a', 'name': 'Maya Chen', 'subject': 'Algebra 1', 'rate': 25},
+            {'id': 'b', 'name': 'maya chen', 'subject': 'Geometry', 'rate': 30, 'archived': True}],
+            'sessions': [{'id': 's1', 'clientId': 'b', 'date': '2026-10-02', 'minutes': 60}]}
+        fd, dup2_path = tempfile.mkstemp(suffix='.json'); os.write(fd, _json.dumps(dup2).encode()); os.close(fd)
+        ctx = b.new_context(viewport={'width': 390, 'height': 844}, service_workers='block'); pg = ctx.new_page()
+        pg.on('dialog', lambda d: d.accept())
+        errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(URL); pg.wait_for_timeout(300); go(pg, 'settings'); pg.click('[data-act=demo]'); pg.wait_for_timeout(200)
+        go(pg, 'settings'); pg.set_input_files('#importFile', dup2_path); pg.wait_for_timeout(400)
+        go(pg, 'dashboard')
+        check('students keyboard: archived tag shows on the owes list', pg.evaluate("[...document.querySelectorAll('#app .pill')].some(p => p.textContent.trim() === 'archived')"))
+        go(pg, 'students')
+        pg.evaluate("document.querySelector('details.mt summary').focus()"); pg.keyboard.press('Enter'); pg.wait_for_timeout(100)
+        for _ in range(4):
+            if pg.evaluate("document.activeElement && document.activeElement.dataset && document.activeElement.dataset.act") == 'restoreClient': break
+            pg.keyboard.press('Tab')
+        check('students keyboard: Tab reaches the Restore button', pg.evaluate("document.activeElement.dataset.act") == 'restoreClient')
+        pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+        foc_h = pg.evaluate("(() => { const a = document.activeElement; return a && a.tagName === 'H1' ? a.textContent.trim() : (a ? a.tagName + '#' + a.id : '') })()")
+        check('students keyboard: after Restore, focus lands on the Students heading', foc_h == 'Students', foc_h)
+        check('students keyboard: the toast announces the restore once (one polite status region)',
+              pg.evaluate("document.querySelectorAll('#toast[role=status]').length") == 1 and 'restored' in pg.inner_text('#toast'))
+        check('students keyboard: duplicate-name notice stays one status region after Restore', pg.evaluate("document.querySelectorAll('#dupNote').length") == 1)
+        check('students keyboard: no archived tag once restored', not pg.evaluate("[...document.querySelectorAll('#app .pill')].some(p => p.textContent.trim() === 'archived')"))
+        over = pg.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
+        check('students keyboard: no horizontal overflow at 390px', over <= 0, f'{over}px')
+        check('students keyboard: no page errors', not errs, str(errs))
+        ctx.close()
+
         # first paint: the footer must not paint at the top and then jump below the app (CLS was 0.10 at 390px)
         for vw in (390, 1280):
             ctx = b.new_context(viewport={'width': vw, 'height': 844}, service_workers='block'); pg = ctx.new_page()
