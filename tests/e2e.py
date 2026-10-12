@@ -505,6 +505,16 @@ console.log(JSON.stringify(s));""", str(ROOT / 'js' / 'core.js')]).decode()
         check('duplicate-name backup: invoice picker labels differ', len(set(opts)) == len(opts) == 2, str(opts))
         check('duplicate-name backup: no page errors', not errs, str(errs))
         ctx.close()
+
+        # first paint: the footer must not paint at the top and then jump below the app (CLS was 0.10 at 390px)
+        for vw in (390, 1280):
+            ctx = b.new_context(viewport={'width': vw, 'height': 844}, service_workers='block'); pg = ctx.new_page()
+            cdp = ctx.new_cdp_session(pg); cdp.send('Emulation.setCPUThrottlingRate', {'rate': 4})
+            pg.add_init_script("window.__cls=0;new PerformanceObserver(l=>{for(const e of l.getEntries())if(!e.hadRecentInput)window.__cls+=e.value}).observe({type:'layout-shift',buffered:true});")
+            pg.goto(URL); pg.wait_for_timeout(1500)
+            cls = pg.evaluate('window.__cls')
+            check(f'first load at {vw}px: layout shift (CLS) under 0.05', cls < 0.05, f'CLS {cls:.3f}')
+            ctx.close()
         b.close()
 finally:
     srv.terminate()

@@ -30,6 +30,10 @@ nav a:hover, nav a.active { background: var(--brand-tint); color: var(--brand); 
 .samplebar p { margin: 0; flex: 1 1 260px; }
 
 main { max-width: 1080px; margin: 0 auto; padding: 24px; }
+/* Until app.js renders the first page, #app holds only the <noscript> note: reserve the screen so the footer
+   doesn't paint at the top and then jump down (CLS was 0.10 at 390px). Print and no-JS are unaffected. */
+@media screen { #app:has(> noscript:only-child) { min-height: 100vh; } }
+@media (scripting: none) { #app:has(> noscript:only-child) { min-height: 0; } }
 h1 { font-size: 26px; margin: 0 0 4px; }
 h2 { font-size: 18px; margin: 0 0 12px; }
 h3 { font-size: 17px; margin: 0 0 6px; }
