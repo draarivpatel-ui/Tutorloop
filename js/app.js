@@ -170,10 +170,13 @@
     return o;
   }
 
-  function showErrors(form, errs) {
+  /** Show a form's errors in its role=alert box. Multi-field forms move focus to the box; a one-field form passes
+   *  that field as focusEl, so the user can fix it at once and the alert is read once (not again as the focused box). */
+  function showErrors(form, errs, focusEl) {
     const box = form.querySelector('.form-errors');
     box.innerHTML = errs.length ? '<ul>' + errs.map(e => '<li>' + esc(e) + '</li>').join('') + '</ul>' : '';
-    if (errs.length) box.focus();
+    if (!errs.length) return;
+    if (focusEl) { focusEl.focus(); if (focusEl.select) focusEl.select(); } else box.focus();
   }
 
   function clientOptions(selected, includeId) {
@@ -812,7 +815,7 @@
     }
     if (f.id === 'payForm') {
       const plan = C.planPayment(state, f.dataset.id, d.amount);
-      if (!plan.ok) { const a = document.getElementById('pay-amount'); if (a) a.setAttribute('aria-invalid', 'true'); return showErrors(f, [plan.error]); }
+      if (!plan.ok) { const a = document.getElementById('pay-amount'); if (a) a.setAttribute('aria-invalid', 'true'); return showErrors(f, [plan.error], a); }
       const who = firstName((C.clientById(state, f.dataset.id) || {}).name);
       commit(C.money(plan.amount) + ' recorded for ' + who + (plan.owedAfter > 0 ? '. ' + C.money(plan.owedAfter) + ' still owed.' : '. All paid up.'), () => { C.applyPayment(state, f.dataset.id, plan, today()); }, '#pay-amount');
       // Paid in full removes the form; don't drop keyboard focus on <body>.
