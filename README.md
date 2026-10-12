@@ -2,9 +2,9 @@
 
 **Live demo:** https://aariv.me/Tutorloop/ · **Why TutorLoop / pricing:** https://aariv.me/Tutorloop/#about (GitHub Pages on a custom domain; the github.io address redirects there). Click **"Try it with sample data"** to explore. The sample students are fictional.
 
-**The back office for student tutors.** Log a session in about 10 seconds, see who still owes you, send parents a progress update or a payment reminder in one click, print an invoice, and export volunteer hours for your NHS sponsor. It's free and private, and it works offline after your first visit.
+TutorLoop is a free web app for high school and college students who tutor. Log a session in about 10 seconds, see who still owes you, send parents a progress update or a payment reminder in one click, print an invoice, and export volunteer hours for your NHS sponsor. It's free and private, and it works offline after your first visit.
 
-![TutorLoop dashboard welcome screen with the 30-second quick-start form](docs/hero.png)
+![TutorLoop empty dashboard with the 30-second quick-start form](docs/hero.png)
 
 *Screenshot of the live site (Oct 2026), taken with headless Chromium.*
 
@@ -36,10 +36,10 @@ Tutoring-company software (scheduling and billing suites) is built for businesse
 | **Dashboard** | Earned and collected this month, all-time unpaid balance, service hours (with goal progress), a 6-month earnings chart, a "Who owes you" list with Invoice / Remind / Mark paid buttons, and **Quick log** buttons that start from your last session with each student |
 | **30-second first run** | On an empty app, one quick-start form (student, rate, minutes, topics, how it went) creates the student and the first session, then the dashboard shows the drafted parent update, the invoice amount, and next steps |
 | **10-second session log** | Student, date, minutes (quick 30/45/60/90 chips), optional rate override, topics, notes, paid or volunteer, with a live amount preview |
-| **Smart parent updates** | Turns session topics and notes into a parent-ready progress email: topics ranked, a recency-weighted trend, the latest highlight, and the next focus. Presets for the last 30 days, this month, the last 90 days, or all sessions. **You can edit the text before you copy it or open it in your email app.** |
+| **Parent updates** | Turns session topics and notes into a parent-ready progress email: topics ranked, a recency-weighted trend, the latest highlight, and the next focus. Presets for the last 30 days, this month, the last 90 days, or all sessions. **You can edit the text before you copy it or open it in your email app.** |
 | **Payment reminders** | One click opens a polite, itemised reminder (dates, minutes, amounts, total, and "You can pay with Venmo @handle") addressed to the parent. The payment app is a setting, guessed from the handle if blank |
 | **"Sent with TutorLoop" footer (optional)** | Off by default. Switch it on in Settings to end parent updates, reminders, and invoices with one plain link to TutorLoop. No tracking or referral code |
-| **Invoices and part payments** | Unpaid sessions roll into a clean invoice (Print / Save as PDF) with a stable invoice number. Got only part of the money? Record the amount: it settles the oldest sessions first and keeps the remainder as a part payment, so the balance, the reminder email, the invoice and the monthly statement all show what is still owed (cent-exact, undoable, never more than the balance) |
+| **Invoices and part payments** | Unpaid sessions roll into an invoice (Print / Save as PDF) with a stable invoice number. Got only part of the money? Record the amount: it settles the oldest sessions first and keeps the remainder as a part payment, so the balance, the reminder email, the invoice and the monthly statement all show what is still owed (cent-exact, undoable, never more than the balance) |
 | **Service hours** | Volunteer sessions count as $0, track progress toward an optional hour goal, export to CSV, and print as a sponsor log with a signature line |
 | **Monthly summary** | Pick a month and one student (a family statement: sessions, topics, paid/unpaid, balance due, how to pay) or all students (a recap for you or your NHS sponsor, with service hours and a signature line when printed). Print / Save PDF, copy as text, or open in email |
 | **Your data, your device** | Everything stays in `localStorage`. JSON backup and restore, CSV export, undo for every change (toast button or Ctrl/Cmd+Z), archive/restore students, and permanent delete when a family asks |

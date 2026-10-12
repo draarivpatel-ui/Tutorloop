@@ -8,10 +8,11 @@
  *   - only requests under this worker's scope are cached;
  *   - the offline index.html fallback is used for page navigations only, never for scripts/CSS. */
 const PREFIX = 'tutorloop-';
-const VERSION = PREFIX + 'v27';
+const VERSION = PREFIX + 'v28';
 const SCOPE = new URL('./', self.location.href).href;          // e.g. https://aariv.me/Tutorloop/
 const INDEX = new URL('index.html', SCOPE).href;
-const SHELL = ['./', 'index.html', 'styles.css', 'js/core.js', 'js/app.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
+const SHELL = ['./', 'index.html', 'styles.css', 'js/core.js', 'js/app.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png',
+  'fonts/plex-sans-400.woff2', 'fonts/plex-sans-600.woff2', 'fonts/plex-sans-700.woff2', 'fonts/plex-mono-500.woff2'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

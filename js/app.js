@@ -215,14 +215,14 @@
   /* ---------- views ---------- */
   const views = {
     dashboard() {
-      const hello = state.profile.name ? 'Hi ' + esc(firstName(state.profile.name)) : 'Welcome to TutorLoop';
+      const hello = state.profile.name ? 'Hi ' + esc(firstName(state.profile.name)) : 'Dashboard';
       if (!state.clients.length) {
         return `
           <h1 tabindex="-1">${hello}</h1>
-          <p class="sub">The back office for student tutors.</p>
+          <p class="sub">Nothing logged yet. Try the sample data or add your first student.</p>
           <section class="card hero">
-            <h2>Run your tutoring like a real business</h2>
-            <p>Log a session in about 10 seconds, see who still owes you, send parents a progress update in one click, and export volunteer hours for your NHS sponsor. Free, private, and it works offline.</p>
+            <h2>Start here</h2>
+            <p>Log a session in about 10 seconds, see who still owes you, send a parent a progress update, and export volunteer hours for your NHS sponsor. It's free, there's no account, and it works offline.</p>
             <div class="actions"><button class="btn" data-act="demo">Try it with sample data</button><button class="btn ghost" data-act="focusQuick">Start with my own students</button></div>
             <p class="mt-s"><a href="#about">How it works, who it's for, and pricing</a></p>
           </section>
@@ -274,7 +274,7 @@
               <li class="muted">All of this is free for up to ${C.FREE_CLIENT_LIMIT} students, with no account. <a href="#about">How TutorLoop makes money</a></li></ul></div>
           </div></section>` : '';
       return `
-        <h1 tabindex="-1">${hello} 👋</h1>
+        <h1 tabindex="-1">${hello}</h1>
         <p class="sub">Your tutoring business at a glance for ${esc(C.fmtMonth(m))}. <a href="#summary/${esc(m)}">Monthly summary</a></p>
         ${callout}
         <div class="grid kpis">
@@ -442,9 +442,9 @@
           ${inv.items.length ? `<table><thead><tr><th scope="col">Date</th><th scope="col">Topics</th><th scope="col" class="num">Time</th><th scope="col" class="num">Amount</th></tr></thead><tbody>
             ${inv.items.map(i => `<tr><td>${esc(C.fmtDate(i.date, true))}</td><td>${esc(i.topics)}</td><td class="num">${i.minutes} min</td><td class="num">${i.partPaid ? `${C.money(i.amount)}<div class="muted small">${C.money(i.partPaid)} of ${C.money(i.full)} already paid</div>` : C.money(i.amount)}</td></tr>`).join('')}
             </tbody><tfoot><tr><td colspan="3" class="num"><b>Total due</b></td><td class="num"><b>${C.money(inv.total)}</b></td></tr></tfoot></table>
-            ${p.venmo ? `<p>Pay with: <b>${esc(C.paymentText(p))}</b></p>` : '<p class="muted no-print">Tip: add your Venmo or Zelle handle in <a href="#settings">Settings</a> so it prints here.</p>'}` : (state.sessions.some(x => x.clientId === id) ? '<p class="sub">No unpaid sessions for this student. 🎉</p>'
+            ${p.venmo ? `<p>Pay with: <b>${esc(C.paymentText(p))}</b></p>` : '<p class="muted no-print">Tip: add your Venmo or Zelle handle in <a href="#settings">Settings</a> so it prints here.</p>'}` : (state.sessions.some(x => x.clientId === id) ? '<p class="sub">No unpaid sessions for this student.</p>'
               : `<p class="sub">No sessions logged for ${esc(firstName(inv.client.name))} yet, so there is nothing to bill.</p><p class="no-print"><a class="btn small" href="#log/for/${esc(id)}">Log a session for ${esc(firstName(inv.client.name))}</a></p>`)}
-          <p class="muted">Thank you!</p>
+          <p class="muted">Thank you.</p>
           ${p.referralFooter ? `<p class="muted referral">Sent with TutorLoop, a free app for student tutors: <a href="${esc(C.APP_URL)}">${esc(C.APP_URL.replace(/^https:\/\//, ''))}</a></p>` : ''}
         </article>`;
     },
@@ -486,7 +486,7 @@
           ${c ? `<table><thead><tr><th scope="col">Date</th><th scope="col">Topics</th><th scope="col" class="num">Time</th><th scope="col" class="num">Amount</th><th scope="col">Status</th></tr></thead><tbody>
               ${sm.sessions.map(s => `<tr><td>${esc(fd(s.date))}</td><td>${esc(s.topics) || '<span class="muted">-</span>'}</td><td class="num">${esc(s.minutes)} min</td>
                 <td class="num">${s.volunteer ? '<span class="muted">-</span>' : C.money(C.sessionAmount(s, c))}</td><td>${s.volunteer ? 'volunteer' : s.paid ? 'paid' : 'unpaid'}</td></tr>`).join('')}</tbody></table>
-              ${t.paidSessions ? `<p>${sm.balanceAll > 0 ? `<b>Total balance due today: ${C.money(sm.balanceAll)}</b>${p.venmo ? ' · Pay with: ' + esc(C.paymentText(p)) : ''}` : 'Nothing is due. Thank you!'}</p>` : ''}`
+              ${t.paidSessions ? `<p>${sm.balanceAll > 0 ? `<b>Total balance due today: ${C.money(sm.balanceAll)}</b>${p.venmo ? ' · Pay with: ' + esc(C.paymentText(p)) : ''}` : 'Nothing is due. Thank you.'}</p>` : ''}`
             : `<table class="stack"><thead><tr><th scope="col">Student</th><th scope="col" class="num">Sessions</th><th scope="col" class="num">Hours</th><th scope="col" class="num">Charged</th><th scope="col" class="num">Unpaid</th><th scope="col" class="num">Service hrs</th></tr></thead><tbody>
               ${sm.students.map(r => `<tr><td data-label="Student"><a class="no-print-link" href="#summary/${esc(month)}/${esc(r.client.id)}">${esc(r.client.name)}</a></td><td data-label="Sessions" class="num">${r.sessions}</td><td data-label="Hours" class="num">${r.hours}</td>
                 <td data-label="Charged" class="num">${r.paidSessions ? C.money(r.billed) : '-'}</td><td data-label="Unpaid" class="num">${r.paidSessions ? C.money(r.unpaid) : '-'}</td><td data-label="Service hrs" class="num">${r.volunteerHours || '-'}</td></tr>`).join('')}
@@ -513,7 +513,7 @@
         <div class="grid kpis no-print"><div class="card kpi"><div class="label">Total service hours</div><div class="value brand">${sp.hours}</div><div class="hint">${C.plural(vol.length, 'volunteer session')}</div></div>
           <div class="card kpi"><div class="label">Goal</div>${sp.goal ? `<div class="value">${sp.pct}%</div>
             <div class="bar" role="progressbar" aria-label="Service-hour goal progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${sp.pct}"><span class="w${Math.round(sp.pct / 5) * 5}"></span></div>
-            <div class="hint">${sp.remaining ? sp.remaining + ' hours to go of ' + sp.goal : 'Goal reached! 🎉'}</div>` : '<div class="hint mt-s">No goal set. <a href="#settings">Set an hour goal</a> to track progress.</div>'}</div></div>
+            <div class="hint">${sp.remaining ? sp.remaining + ' hours to go of ' + sp.goal : 'Goal reached.'}</div>` : '<div class="hint mt-s">No goal set. <a href="#settings">Set an hour goal</a> to track progress.</div>'}</div></div>
         <section class="card mt hours-doc">
           <div class="print-only"><h2>Volunteer tutoring log</h2><p>Volunteer: ${esc(p.name || '________________')} · Total: ${sp.hours} hours · Printed ${esc(C.fmtDate(today(), true))}</p></div>
           <div class="toolbar no-print"><button class="btn" data-act="exportHours" ${vol.length ? '' : 'disabled'}>Export hours (CSV)</button><button class="btn ghost" data-act="print" ${vol.length ? '' : 'disabled'}>Print log for sponsor</button><a class="btn ghost" href="#summary">Monthly summary</a></div>
@@ -537,8 +537,8 @@
         <h1 tabindex="-1">Why TutorLoop</h1>
         <p class="sub">The back office for student tutors: log it, get paid, keep parents in the loop, prove your hours.</p>
         <section class="card hero">
-          <h2>Student tutors run real businesses with tools built for something else</h2>
-          <p>A notes app for sessions, a Venmo feed to guess who paid, a text thread with each parent, and a paper sheet for volunteer hours. TutorLoop puts those four jobs in one free app that works in the browser, with no account and no server.</p>
+          <h2>Why I built this</h2>
+          <p>Student tutors often keep sessions in a notes app, scroll a Venmo feed to guess who paid, text each parent separately, and track volunteer hours on paper. TutorLoop puts those four jobs in one free app that runs in the browser, with no account and no server.</p>
           <div class="actions"><button class="btn" data-act="demo">Try it with sample data</button><a class="btn ghost" href="#students" data-act="startOwn">Start with my own students</a></div>
         </section>
 
@@ -607,8 +607,8 @@
         })()}
         <section class="card mt-s"><h3>Go-to-market, in order</h3>
           <ol><li><b>Seed:</b> NHS and math-club tutors at our own school and nearby Fort Bend ISD schools; demo at a chapter meeting.</li>
-            <li><b>Sponsor wedge:</b> one NHS adviser gets a free semester of Club in exchange for feedback. Their pain (collecting and checking hours) is what drives a chapter-wide rollout.</li>
-            <li><b>Built-in word of mouth:</b> tutors can switch on an opt-in "Sent with TutorLoop" line, so every parent update and invoice carries a link (no tracking).</li>
+            <li><b>Start with one sponsor:</b> one NHS adviser gets a free semester of Club in exchange for feedback. Their pain (collecting and checking hours) is what drives a chapter-wide rollout.</li>
+            <li><b>Word of mouth:</b> tutors can switch on an opt-in "Sent with TutorLoop" line, so every parent update and invoice carries a link (no tracking).</li>
             <li><b>Annual Pro test:</b> card and billing fees take ${Math.round(fee(4) / 4 * 100)}% of a $4 monthly charge (mostly the flat 30¢), so an annual Pro price is the first pricing experiment.</li></ol></section>
 
         <h2 class="mt-l" id="compare">How it compares</h2>
@@ -671,7 +671,7 @@
               <div class="bar" role="progressbar" aria-label="Free plan students used" aria-valuemin="0" aria-valuemax="${lim}" aria-valuenow="${used}"><span class="w${Math.round(pct / 5) * 5}"></span></div>`
               : `<p class="tight"><b>${used}</b> active students on ${p.plan === 'club' ? 'Club' : 'Pro'} (no limit).</p>`}
             <p class="sub mt-s">${pv ? `Pro is $4 a month, about <b>${C.plural(pv.minutes, 'minute')}</b> of tutoring at your average paid rate of ${C.money(pv.rate)}/hr.` : 'Once you log paid sessions, this shows what Pro costs in minutes of your own tutoring.'}
-              Everything you use today stays free for up to ${lim} students; the only thing Pro unlocks today is more students. Sync and scheduled reminders are roadmap items and won't be charged for until they exist.</p></section>`;
+              Everything you use today stays free for up to ${lim} students; the only thing Pro adds today is more students. Sync and scheduled reminders are roadmap items and won't be charged for until they exist.</p></section>`;
         })()}
         <div class="grid plans">
           ${plan('free', 'Free', '$0', '', ['Up to 3 active students', 'Session log &amp; dashboard', 'Parent updates &amp; payment reminders', 'Invoices and service-hour export'], `<button class="btn ghost" data-act="plan" data-plan="free">Switch to Free</button>`)}

@@ -351,7 +351,7 @@ console.log(JSON.stringify(s));""", str(ROOT / 'js' / 'core.js')]).decode()
         go(pg, 'about'); pg.wait_for_timeout(150)
         mk = pg.inner_text('#app')
         check('pitch page sizes the NHS channel with sources and an honest ceiling', '17,000+ chapters' in mk and '$1.6 million' in mk and 'Ceiling, not a forecast' in mk and 'nationalhonorsociety.org/about' in pg.inner_html('#app'), mk[:200])
-        check('pitch page lays out go-to-market in order', 'Sponsor wedge' in mk and 'Go-to-market, in order' in mk)
+        check('pitch page lays out go-to-market in order', 'Start with one sponsor' in mk and 'Go-to-market, in order' in mk)
         check('Business model table has an Annual Pro row ($36.00/yr, $1.60 fees, $34.40 kept) and a who-pays note',
               pg.locator('tr', has_text='Pro (annual)').count() == 1 and '$36.00/yr' in mk and '$34.40 (96%)' in mk and 'Who pays:' in mk and 'No paying customers yet' in mk, mk[:300])
         check('no console errors in first-run, toast, and summary flows', not qs_console, qs_console)

@@ -138,12 +138,12 @@ try:
               i >= 0 and '$5.00 a month' in be and be.count('2 tutors') == 2 and '1 chapter covers 19 months' in be and
               all(x in PITCH for x in ('$5.00 a month', '**2 monthly Pro tutors**', '**2 annual Pro tutors**', '**1 Club chapter**', '19 months')), be[:400])
         i = t.find('Go-to-market, in order'); gtm = t[i:i + 900]
-        app_steps = [s for s in ('Seed:', 'Sponsor wedge:', 'Built-in word of mouth:', 'Annual Pro test:') if s in gtm]
+        app_steps = [s for s in ('Seed:', 'Start with one sponsor:', 'Word of mouth:', 'Annual Pro test:') if s in gtm]
         pos = [gtm.find(s) for s in app_steps]
-        check('app: go-to-market shows Seed, Sponsor wedge, Built-in word of mouth, Annual Pro test, in that order', len(app_steps) == 4 and pos == sorted(pos), gtm[:400])
+        check('app: go-to-market shows Seed, Start with one sponsor, Word of mouth, Annual Pro test, in that order', len(app_steps) == 4 and pos == sorted(pos), gtm[:400])
         sec5 = PITCH[PITCH.index('## 5. Go-to-market'):PITCH.index('## 6.')]
         doc_steps = re.findall(r'^\d\. \*\*([^*:(]+?)(?: \([^)]*\))?:\*\*', sec5, re.M)
-        check('pitch 5: its first four steps are the app\'s four, same order', doc_steps[:4] == ['Seed', 'Sponsor wedge', 'Built-in word of mouth', 'Annual Pro test'], doc_steps)
+        check('pitch 5: its first four steps are the app\'s four, same order', doc_steps[:4] == ['Seed', 'Start with one sponsor', 'Word of mouth', 'Annual Pro test'], doc_steps)
         check('pitch 6: the page says "No paying customers yet, and no usage numbers to claim."', 'No paying customers yet, and no usage numbers to claim.' in t and 'No paying customers yet, and no usage numbers to claim.' in PITCH)
         check('pitch 8: TutorBird $16.95 and Teachworks $16.49 + $0.32 match the page', '$16.95/mo + $4.95' in t and '$16.49/mo + $0.32' in t and '$16.95/mo + $4.95' in PITCH and '$16.49/mo + $0.32' in PITCH)
         check('no console or page errors on the demo path', not errs, errs)
