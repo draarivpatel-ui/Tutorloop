@@ -124,12 +124,13 @@ try:
             go(pg, 'about'); t = app(pg)
             for claim, needle in (('Free: up to 3 active students', '3 active students'), ('Pro, $4/month', '$4'), ('Club, $99/school year', '$99'),
                                   ('keeps $3.56 of a Pro month', '$3.56'), ('$95.14 of a Club year', '$95.14'),
-                                  ("NHS's 17,000+ chapters", '17,000+'),
                                   ('Traction, honestly: none yet', 'No paying customers yet'), ('Plan upgrades in the app are a demo checkout', 'simulation')):
                 check(f'{tag} pitch page: "{claim}"', needle in t, '')
-            # Devpost: "Club alone is a ~$1.7M/year ceiling" (17,000 x $99 gross). The app states the ceiling net of Stripe fees
-            # (17,000 x $95.14 kept = $1.6 million). Both are true; this checks the app still states a ceiling, not a forecast.
-            check(tag + ' pitch page: Club ceiling stated as "not a forecast" ($1.6M kept; Devpost rounds the gross to ~$1.7M)', 'Ceiling, not a forecast' in t and '1.6 million' in t, '')
+            # KNOWN DRIFT (Oct 12, 2026): Devpost says "NHS has 17,000+ chapters" and a "~$1.6M after fees (~$1.7M at list)" ceiling.
+            # NHS's own History page (the source Wikipedia's 17,000+ cites) now says "more than 16,000 active chapters", so the app uses
+            # 16,000+ and 16,000 x $95.14 kept = $1.5 million. These checks hold the app to the primary source, not to the frozen page.
+            check(tag + ' pitch page: NHS chapters from the primary source (16,000+; Devpost\'s 17,000+ is stale)', '16,000+ chapters' in t and '17,000' not in t, '')
+            check(tag + ' pitch page: Club ceiling stated as "not a forecast" (16,000 x $95.14 = $1.5M kept)', 'Ceiling, not a forecast' in t and '1.5 million' in t, '')
             go(pg, 'settings'); t = app(pg)
             check(tag + ' Plans: Free / Pro $4/month / Club $99/school year with roadmap items tagged', '$4' in t and '$99' in t and 'roadmap' in t, '')
             check(tag + ' no console or page errors on the judge path', not errs, errs)

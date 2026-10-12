@@ -31,9 +31,9 @@ One free web app that handles all four jobs: logging sessions, getting paid, upd
 
 ## 3. Market
 - **Top-down:** the US private tutoring market was about **$13.5B in 2024**, projected to reach **$27.0B by 2034** (7.5% CAGR) per Emergen Research (https://www.emergenresearch.com/industry-report/us-private-tutoring-market). TutorLoop doesn't take a cut of tutoring revenue, so this is context for how much activity exists, not our revenue pool.
-- **Channel we can reach:** the National Honor Society has **17,000+ chapters and about 1.4 million active members** (https://en.wikipedia.org/wiki/National_Honor_Society, citing NHS/NASSP). Every chapter has a faculty sponsor who has to collect service-hour records.
-- **Bottom-up ceiling (illustrative, not a forecast):** 17,000 NHS chapters × $99/year Club plan ≈ **$1.7M/year** at list price, or about **$1.6M/year** after Stripe fees (17,000 × $95.14 kept, the figure the app shows), if every chapter paid. A realistic early goal is a few chapters in Fort Bend ISD. Pro revenue from individual paid tutors would come on top; we don't have a reliable count of student tutors, so we don't size it.
-- **In the product:** the Why TutorLoop page (https://aariv.me/Tutorloop/#about) has a **"Who pays, and how we reach them"** section that makes this case on screen: the first payer we can reach is the NHS adviser who collects every tutor's hours; the average chapter contributes about 1,000 service hours a year; one Club plan covers up to 50 tutors, so one adviser's yes brings a whole chapter; costs today are $0 a month; and the first real cost (a Pro sync server) is only built once paying users ask for it. Sources on the page: NHS About page and Wikipedia, checked Oct 11, 2026.
+- **Channel we can reach:** the National Honor Society has **16,000+ chapters and more than 1.4 million students** (NHS's own pages: https://www.nationalhonorsociety.org/about/the-history-of-nhs/ says "more than 16,000 active chapters", https://www.nationalhonorsociety.org/about/ says "more than 1.4 million students"; checked Oct 12, 2026. Wikipedia still lists 17,000+, citing the same History page, so we use NHS's lower, current number). Every chapter has a faculty sponsor who has to collect service-hour records.
+- **Bottom-up ceiling (illustrative, not a forecast):** 16,000 NHS chapters × $99/year Club plan ≈ **$1.6M/year** at list price, or about **$1.5M/year** after Stripe fees (16,000 × $95.14 kept, the figure the app shows), if every chapter paid. A realistic early goal is a few chapters in Fort Bend ISD. Pro revenue from individual paid tutors would come on top; we don't have a reliable count of student tutors, so we don't size it.
+- **In the product:** the Why TutorLoop page (https://aariv.me/Tutorloop/#about) has a **"Who pays, and how we reach them"** section that makes this case on screen: the first payer we can reach is the NHS adviser who collects every tutor's hours; the average chapter contributes about 1,000 service hours a year; one Club plan covers up to 50 tutors, so one adviser's yes brings a whole chapter; costs today are $0 a month; and the first real cost (a Pro sync server) is only built once paying users ask for it. Sources on the page: NHS's About and History pages, checked Oct 12, 2026.
 - **First users:** high school students in the Houston area who tutor 1–10 kids, starting with NHS and math-club members at Aariv's own school.
 
 ## 4. Business model
@@ -53,7 +53,7 @@ Freemium, with a B2B2C channel through school clubs.
 - **Principle:** we won't charge for Pro's sync or scheduled reminders until they are built. Checkout in the app today is a simulation.
 - Later option: a small fee on payment links if we add in-app payments.
 
-**How it pays for itself:** the first real bill is sync. On Cloudflare Workers Paid that is $5.00 a month minimum, including a database (developers.cloudflare.com/workers/platform/pricing, checked Oct 11, 2026). After card and billing fees that takes **2 monthly Pro tutors** ($3.56 kept each), **2 annual Pro tutors** ($34.40 a year each vs $60 a year), or **1 Club chapter** ($95.14 covers 19 months). The Why TutorLoop page shows this as a "Break-even, in customers" table computed from the same fee math. Not counted: our own time and usage above Cloudflare's included amounts. Growth comes through sponsors (one sponsor = 20–50 tutors) rather than paid ads.
+**How it pays for itself:** the first real bill is sync. On Cloudflare Workers Paid that is $5.00 a month minimum, including a database (developers.cloudflare.com/workers/platform/pricing, checked Oct 12, 2026). After card and billing fees that takes **2 monthly Pro tutors** ($3.56 kept each), **2 annual Pro tutors** ($34.40 a year each vs $60 a year), or **1 Club chapter** ($95.14 covers 19 months). The Why TutorLoop page shows this as a "Break-even, in customers" table computed from the same fee math. Not counted: our own time and usage above Cloudflare's included amounts. Growth comes through sponsors (one sponsor = 20–50 tutors) rather than paid ads.
 
 ## 5. Go-to-market
 The first four steps appear in this order on the app's Why TutorLoop page under "Who pays, and how we reach them".
@@ -66,7 +66,7 @@ The first four steps appear in this order on the app's Why TutorLoop page under 
 ## 6. Traction (stated honestly)
 **None yet.** No users, no paying customers, no pilots, no waitlist, no usage numbers. What exists:
 - A working, publicly deployed product at https://aariv.me/Tutorloop/.
-- 65 unit tests + 11 money property tests, 66 DOM checks, 204 headless-Chromium end-to-end checks, 32 print checks and 50 time-zone checks, all passing on Oct 11, 2026 (re-run ~11:20 PM ET; re-run before quoting). GitHub Actions runs all of them on every push.
+- 65 unit tests + 11 money property tests, 66 DOM checks, 204 headless-Chromium end-to-end checks, 32 print checks and 50 time-zone checks, all passing on Oct 12, 2026 (re-run ~12:50 PM ET; re-run before quoting). GitHub Actions runs all of them on every push.
 - An in-app pitch page that states the same thing: "No paying customers yet, and no usage numbers to claim."
 
 ## 7. Technology (why it can scale cheaply)
@@ -83,7 +83,7 @@ The first four steps appear in this order on the app's Why TutorLoop page under 
 | Venmo/Zelle | Moving money | No record of what each payment was for |
 | Paper or Google Form hour logs | What sponsors already accept | Re-typed by hand; nothing ties hours to actual sessions |
 
-Prices: vendors' own pricing pages, monthly billing, checked Oct 10, 2026 (https://www.tutorbird.com/pricing/, https://teachworks.com/pricing). The same comparison is on the app's Why TutorLoop page.
+Prices: vendors' own pricing pages, monthly billing, checked Oct 12, 2026 (https://www.tutorbird.com/pricing/, https://teachworks.com/pricing). The same comparison is on the app's Why TutorLoop page.
 
 Where TutorLoop is different: of the options above, it's the only one built around a *student* tutor's four jobs, including service hours, free for the core use case, private by default.
 

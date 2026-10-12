@@ -45,5 +45,5 @@ Use it in a live walkthrough or Q&A if a judge asks "what if a parent only pays 
 - One-click reminders are built (they open your email app). Scheduled/automatic reminders, cloud sync, and the Club sponsor dashboard are roadmap. Don't show or imply them as built.
 - "Works offline" means after the first visit.
 - Sample students (Maya, Ethan, Sofia) are fictional demo data. While they're loaded, the bar at the top says so, and **Start fresh with my own students** clears them (undoable). If you end a take on an app page, you can click it to show a clean start.
-- On the "Who pays" section, the $1.6 million line is a ceiling if every NHS chapter paid, not a forecast. Say "ceiling".
+- On the "Who pays" section, the $1.5 million line (16,000 chapters × $95.14 kept) is a ceiling if every NHS chapter paid, not a forecast. Say "ceiling". The submitted video and Devpost text say 17,000+ / $1.6M from an older figure; NHS's own History page now says 16,000+.
 - If you interview any real tutors before recording, add one true sentence to shot 2. Don't invent a quote.

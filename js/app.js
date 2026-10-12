@@ -524,12 +524,13 @@
 
     about() {
       // Competitor list prices, copied from the vendors' own pricing pages (monthly billing, USD) on CMP.checked.
-      const CMP = { checked: 'Oct 10, 2026', checkedMarket: 'Oct 11, 2026', checkedCost: 'Oct 11, 2026', lessons: 8,
+      const CMP = { checked: 'Oct 12, 2026', checkedMarket: 'Oct 12, 2026', checkedCost: 'Oct 12, 2026', lessons: 8,
         syncMonthly: 5,                                   // https://developers.cloudflare.com/workers/platform/pricing/ (Workers Paid: $5/mo minimum, includes D1 + KV)
         tutorbird: { base: 16.95, perTutor: 4.95 },      // https://www.tutorbird.com/pricing/
         teachworks: { base: 16.49, perLesson: 0.32 } };  // https://teachworks.com/pricing (Starter: $16.49/mo + $0.320 per student lesson)
       // Founder pitch / landing page. Every number here is either a list price, a published fee,
       // or arithmetic on those. There is no traction to report yet, and the page says so.
+      const NHS_CHAPTERS = 16000;   // NHS History page: "more than 16,000 active chapters" (re-checked Oct 12, 2026; Wikipedia's 17,000+ cites that page)
       const fee = price => Math.round((price * 0.029 + 0.30 + price * 0.007) * 100) / 100;   // Stripe card 2.9% + 30c, Billing 0.7%
       const row = (name, price, per) => { const f = fee(price); return `<tr><td data-label="Plan">${name}</td><td data-label="Price" class="num">${C.money(price)}${per}</td>
         <td data-label="Card + billing fees" class="num">${C.money(f)}</td><td data-label="TutorLoop keeps" class="num"><span><b>${C.money(price - f)}</b> (${Math.round((price - f) / price * 100)}%)</span></td></tr>`; };
@@ -584,12 +585,12 @@
         <p class="sub">The paying customer we can reach first isn't the individual tutor. It's the adult who has to collect every tutor's hours.</p>
         <div class="grid two">
           <section class="card"><h3>The channel: NHS chapters</h3>
-            <ul><li>The National Honor Society has <b>17,000+ chapters</b> serving more than <b>1.4 million</b> students.</li>
+            <ul><li>The National Honor Society has <b>16,000+ chapters</b> serving more than <b>1.4 million</b> students.</li>
               <li>The average chapter contributes about <b>1,000 hours</b> of service a year, and membership is based on four pillars, one of which is service. Someone has to collect and check those hours.</li>
               <li>One Club plan is meant to cover up to 50 tutors, so one adviser saying yes brings a whole chapter (once the sponsor dashboard exists; today TutorLoop is single-tutor).</li></ul>
-            <p class="sub small">Sources: <a href="https://www.nationalhonorsociety.org/about/" target="_blank" rel="noopener">NHS: About</a> and <a href="https://en.wikipedia.org/wiki/National_Honor_Society" target="_blank" rel="noopener">Wikipedia</a> (citing NHS's own history page). Checked ${CMP.checkedMarket}.</p></section>
+            <p class="sub small">Sources: <a href="https://www.nationalhonorsociety.org/about/" target="_blank" rel="noopener">NHS: About</a> and <a href="https://www.nationalhonorsociety.org/about/the-history-of-nhs/" target="_blank" rel="noopener">NHS: History</a> ("more than 16,000 active chapters"). Checked ${CMP.checkedMarket}.</p></section>
           <section class="card"><h3>The math, honestly</h3>
-            <ul><li><b>Ceiling, not a forecast:</b> if every chapter paid for Club, that's 17,000 × ${C.money(99 - fee(99))} kept ≈ <b>$${(17000 * (99 - fee(99)) / 1e6).toFixed(1)} million</b> a year.</li>
+            <ul><li><b>Ceiling, not a forecast:</b> if every chapter paid for Club, that's ${NHS_CHAPTERS.toLocaleString('en-US')} × ${C.money(99 - fee(99))} kept ≈ <b>$${(NHS_CHAPTERS * (99 - fee(99)) / 1e6).toFixed(1)} million</b> a year.</li>
               <li><b>Costs today: $0 a month.</b> Free static hosting and no server, so each free tutor costs us about nothing to serve.</li>
               <li><b>First real cost</b> is a sync server for Pro. We only build it once paying users ask for it, so revenue arrives before that cost does.</li></ul></section>
         </div>

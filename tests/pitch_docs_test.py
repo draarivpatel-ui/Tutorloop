@@ -131,8 +131,8 @@ try:
         check('shot 13 / pitch 4: fee table keeps $3.56 of Pro and $95.14 of Club; annual Pro $36.00/yr row',
               '$3.56 (89%)' in t and '$95.14 (96%)' in t and 'Pro (annual) $36.00/yr' in t.replace('\t', ' '), t[:200])
         check('pitch 4 quotes the same unit economics', '$3.56 kept per month (89%)' in PITCH and '$95.14 kept per year (96%)' in PITCH and '$3.56 of a Pro month' in DEMO)
-        check('pitch 3: "$1.6 million" ceiling, 1,000 hours a chapter, 50 tutors per Club are on the page',
-              'Ceiling, not a forecast' in t and '$1.6 million a year' in t and 'about 1,000 hours of service a year' in t and 'up to 50 tutors' in t)
+        check('pitch 3: "$1.5 million" ceiling, 1,000 hours a chapter, 50 tutors per Club are on the page',
+              'Ceiling, not a forecast' in t and '$1.5 million a year' in t and 'about 1,000 hours of service a year' in t and 'up to 50 tutors' in t)
         i = t.find('Break-even, in customers'); be = t[i:i + 900].replace('\t', ' ')
         check('pitch 4 path to sustainability: break-even on the page ($5.00 a month sync -> 2 monthly Pro, 2 annual Pro, 1 Club covers 19 months) and the same numbers in the pitch',
               i >= 0 and '$5.00 a month' in be and be.count('2 tutors') == 2 and '1 chapter covers 19 months' in be and
