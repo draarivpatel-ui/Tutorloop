@@ -17,7 +17,7 @@ Built by Aariv Patel for the [Next Founders Hackathon](https://next-founders.dev
 1. Open https://aariv.me/Tutorloop/ and click **Try it with sample data** (Maya, Ethan and Sofia are made up).
 2. **Dashboard → Who owes you** shows each family's balance; open **Invoices**, pick a student, **Record a payment** of part of the balance, then **Print / Save PDF**.
 3. **Parent updates** turns a session's notes into an editable message; **Service hours** prints a sponsor log with a signature line.
-4. Tests (re-run Oct 12, 2026): `npm test` (65 unit + 11 money property tests + service-worker check), `npm i && npm run test:dom` (66), `python3 tests/e2e.py` (204), `python3 tests/print_test.py` (32), `python3 tests/tz_test.py` (50). GitHub Actions runs all five on every push.
+4. Tests (re-run Oct 12, 2026): `npm test` (65 unit + 11 money property tests + service-worker check), `npm i && npm run test:dom` (66), `python3 tests/e2e.py` (204), `python3 tests/print_test.py` (32), `python3 tests/tz_test.py` (50). GitHub Actions runs all five, plus the `tests/pitch_docs_test.py` docs check, on every push (`.github/workflows/test.yml`).
 
 ## The problem
 
