@@ -182,6 +182,19 @@ setTimeout(() => {
         d.querySelector('.toast-undo').click();
         go('dashboard'); d.querySelector('[data-act=markPaidAll][data-id="' + mid + '"]').click();
         ok('Mark paid on a part-paid student leaves no part payment on paid sessions', C2().sessions.filter(x => x.clientId === mid && x.paid && x.partPaid).length === 0);
+        // Money already received is never dropped: part-pay Ethan $40 (oldest first: $40 of his older 90-min $45
+        // session), then edit that session down to 30 min ($15). It becomes paid and the extra $25
+        // counts toward his next unpaid session; the toast says so; the balance falls by exactly the session's price cut.
+        go('settings'); d.querySelector('[data-act=demo]').click();
+        const eid = 'c_ethan', owed0 = w.TutorCore.balances(C2()).find(b => b.client.id === eid).owed;
+        go('invoices/' + eid); d.getElementById('pay-amount').value = '40'; submit(d.getElementById('payForm'));
+        const part = C2().sessions.find(x => x.clientId === eid && x.partPaid === 40);
+        go('log/' + part.id); const sf = d.getElementById('sessionForm'); sf.querySelector('[name=minutes]').value = '30'; submit(sf);
+        const after = C2(), ps = after.sessions.find(x => x.id === part.id);
+        ok('editing a part-paid session below what was paid marks it paid and carries the extra to the next session',
+           ps.paid === true && ps.partPaid === undefined && after.sessions.filter(x => x.clientId === eid && x.partPaid === 25).length === 1 &&
+           w.TutorCore.balances(after).find(b => b.client.id === eid).owed === w.TutorCore.cents(owed0 - 40 - 30));
+        ok('the toast says the money already paid now counts toward other sessions', /\$25\.00 already paid now counts toward other unpaid sessions/.test(d.getElementById('toast').textContent));
         // A student with no sessions yet: the invoice page says there is nothing to bill and offers to log one
         go('settings'); d.querySelector('[data-act=reset]').click();
         go('students'); const nf = d.getElementById('clientForm'); nf.querySelector('[name=name]').value = 'Nina Fresh'; nf.querySelector('[name=rate]').value = '20'; submit(nf);

@@ -669,6 +669,7 @@
     const payments = (Array.isArray(data.payments) ? data.payments : []).filter(x => x && x.id && ids.has(String(x.clientId)) && isValidDate(x.date) &&
       Number(x.amount) > 0 && !pids.has(String(x.id)) && pids.add(String(x.id))).slice(0, 5000).map(x => ({ id: String(x.id), clientId: String(x.clientId), date: x.date, amount: Math.min(cents(x.amount), 1e6) }));
     const out = { version: SCHEMA_VERSION, profile, clients, sessions, payments };
+    settleCovered(out);   // a backup made before edits settled covered sessions: same rule as the app
     if (data.sample === true) out.sample = true;   // made with "Try it with sample data"; the app shows a "Start fresh" bar
     return out;
   }
@@ -720,6 +721,96 @@
     return state;
   }
 
+  /**
+   * Money already received is never silently dropped. When a session's part payment no longer has a
+   * home (the session was edited down below what was paid, made volunteer, or deleted, or the student's
+   * rate was lowered), the extra moves to the family's oldest unpaid sessions, the same way "Record a
+   * payment" spends money. Whatever is left after every session is paid is returned as `leftover`
+   * (TutorLoop does not hold credit), so the app can say so. All amounts are whole cents internally.
+   */
+  function carryCredit(state, clientId, amount) {
+    const c = clientById(state, clientId);
+    let left = Math.round(cents(amount) * 100);
+    if (!c || left <= 0) return { moved: 0, leftover: cents(Math.max(0, left) / 100), settled: 0 };
+    const start = left; let settled = 0;
+    const items = state.sessions.map((s, i) => ({ s, i })).filter(x => x.s.clientId === clientId && !x.s.paid && !x.s.volunteer && sessionDue(x.s, c) > 0)
+      .sort((a, b) => a.s.date.localeCompare(b.s.date) || a.i - b.i).map(x => x.s);
+    for (const s of items) {
+      if (left <= 0) break;
+      const due = Math.round(sessionDue(s, c) * 100);
+      if (left >= due) { s.paid = true; delete s.partPaid; left -= due; settled++; }
+      else { s.partPaid = cents(Math.round((Number(s.partPaid) || 0) * 100 + left) / 100); left = 0; }
+    }
+    return { moved: cents((start - left) / 100), leftover: cents(left / 100), settled };
+  }
+
+  /**
+   * Make sure no session is "unpaid" while its part payments already cover it: such a session becomes
+   * paid, and anything paid beyond its cost is carried to the family's next unpaid sessions.
+   * Returns { settled, moved, leftover } (dollars) for a friendly message; changes nothing when all is consistent.
+   */
+  function settleCovered(state) {
+    const out = { settled: 0, moved: 0, leftover: 0 };
+    for (let guard = 0; guard < 10000; guard++) {
+      const s = state.sessions.find(x => !x.paid && !x.volunteer && Number(x.partPaid) > 0 &&
+        Math.round(Number(x.partPaid) * 100) >= Math.round(sessionAmount(x, clientById(state, x.clientId)) * 100));
+      if (!s) break;
+      const extra = Math.round(Number(s.partPaid) * 100) - Math.round(sessionAmount(s, clientById(state, s.clientId)) * 100);
+      s.paid = true; delete s.partPaid; out.settled++;
+      const r = carryCredit(state, s.clientId, extra / 100);
+      out.settled += r.settled; out.moved = cents(out.moved + r.moved); out.leftover = cents(out.leftover + r.leftover);
+    }
+    return out;
+  }
+
+  /** Log a new session. */
+  function addSession(state, rec) {
+    state.sessions.push(Object.assign({ id: uid('s') }, rec));
+    return { settled: 0, moved: 0, leftover: 0 };
+  }
+
+  /**
+   * Save an edited session (the Log form). A session saved as paid keeps no part payment (paid in full
+   * covers it). Saved as volunteer, or cheaper than what was already paid toward it, the money already
+   * received moves to the family's other unpaid sessions instead of vanishing. Returns what moved.
+   */
+  function editSession(state, id, rec) {
+    const s = state.sessions.find(x => x.id === id);
+    if (!s) return { settled: 0, moved: 0, leftover: 0 };
+    const oldClient = s.clientId, prior = Number(s.partPaid) > 0 ? cents(s.partPaid) : 0;
+    Object.assign(s, rec);
+    let carry = { settled: 0, moved: 0, leftover: 0 };
+    if (s.paid) delete s.partPaid;
+    else if (prior && (s.volunteer || s.clientId !== oldClient)) { delete s.partPaid; carry = carryCredit(state, oldClient, prior); }
+    const more = settleCovered(state);
+    return { settled: carry.settled + more.settled, moved: cents(carry.moved + more.moved), leftover: cents(carry.leftover + more.leftover) };
+  }
+
+  /** The Paid toggle. Marking paid drops the part payment (paid in full covers it). */
+  function setPaid(state, id, paid) {
+    const s = state.sessions.find(x => x.id === id);
+    if (!s || s.volunteer) return;
+    s.paid = !!paid;
+    if (s.paid) delete s.partPaid;
+  }
+
+  /** Delete a session. A part payment on it moves to the family's other unpaid sessions. */
+  function deleteSession(state, id) {
+    const s = state.sessions.find(x => x.id === id);
+    state.sessions = state.sessions.filter(x => x.id !== id);
+    if (!s || s.paid || s.volunteer || !(Number(s.partPaid) > 0)) return { settled: 0, moved: 0, leftover: 0 };
+    return carryCredit(state, s.clientId, s.partPaid);
+  }
+
+  /** One short sentence for the toast after money moved, or '' when nothing did. */
+  function creditNote(r) {
+    if (!r) return '';
+    const parts = [];
+    if (r.moved > 0) parts.push(money(r.moved) + ' already paid now counts toward other unpaid sessions');
+    if (r.leftover > 0) parts.push(money(r.leftover) + ' already paid is more than anything owed: refund it or note it');
+    return parts.length ? parts.join('. ') + '.' : '';
+  }
+
   /* ---------- demo data ---------- */
 
   /** Realistic, clearly fictional demo data relative to `today` (YYYY-MM-DD). */
@@ -751,7 +842,7 @@
 
   const api = {
     SCHEMA_VERSION, FREE_CLIENT_LIMIT, MAX_MINUTES, uid, emptyState, cents, money, plural, isValidDate, addDays,
-    sessionAmount, sessionDue, planPayment, applyPayment, MAX_PAYMENT, clientById, validateClient, validateSession, duplicateNames, duplicateNamesWarning, clientLabel, stats, monthlySeries, balances, lastSession,
+    sessionAmount, sessionDue, planPayment, applyPayment, carryCredit, settleCovered, addSession, editSession, setPaid, deleteSession, creditNote, MAX_PAYMENT, clientById, validateClient, validateSession, duplicateNames, duplicateNamesWarning, clientLabel, stats, monthlySeries, balances, lastSession,
     serviceProgress, rangePreset, topicList, sentiment, sentence, progressReport, reminderMessage, invoice,
     APP_URL, PAY_METHODS, guessPayMethod, paymentText, paymentSentence, referralFooter,
     csvEscape, volunteerCSV, sessionsCSV, importState, demoState, fmtDate, fmtMonth, monthKey,

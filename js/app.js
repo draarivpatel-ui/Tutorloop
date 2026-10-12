@@ -36,13 +36,15 @@
   /** Snapshot-based undo for any change. */
   function commit(msg, mutate, returnSel) {
     const before = JSON.stringify(state);
-    mutate();
+    const result = mutate();
+    if (typeof msg === 'function') msg = msg(result);   // a message that depends on what changed (e.g. money moved)
     save();
     render();
     lastUndo = () => { lastUndo = null; state = C.importState(before); save(); render(); toast('Undone', null, returnSel); };
     toast(msg, lastUndo, returnSel);
   }
   let lastUndo = null;
+  const withNote = (msg, r) => { const n = C.creditNote(r); return n ? msg + '. ' + n : msg; };
 
   // Ctrl/Cmd+Z undoes the last change when you're not typing in a field.
   document.addEventListener('keydown', e => {
@@ -824,7 +826,8 @@
       const existing = f.dataset.id && state.sessions.find(s => s.id === f.dataset.id);
       const rec = { clientId: d.clientId, date: d.date, minutes: d.minutes, rate: d.rate, topics: d.topics, notes: d.notes, paid: !!d.paid, volunteer: !!d.volunteer };
       location.hash = 'dashboard';
-      commit(existing ? 'Session updated' : 'Session saved', () => { if (existing) { Object.assign(existing, rec); if (rec.paid || rec.volunteer) delete existing.partPaid; } else state.sessions.push(Object.assign({ id: C.uid('s') }, rec)); });
+      // editSession keeps money already received: a part payment on a session made cheaper, volunteer, or moved to another student counts toward the family's other unpaid sessions.
+      commit(r => withNote(existing ? 'Session updated' : 'Session saved', r), () => existing ? C.editSession(state, existing.id, rec) : C.addSession(state, rec));
     }
     if (f.id === 'payForm') {
       const plan = C.planPayment(state, f.dataset.id, d.amount);
@@ -841,7 +844,7 @@
       const errs = C.validateClient(existing ? Object.assign({}, rec, { id: existing.id }) : rec, state);
       if (errs.length) return showErrors(f, errs);
       location.hash = 'students';
-      commit(existing ? 'Student updated' : 'Student added', () => { if (existing) Object.assign(existing, rec); else state.clients.push(Object.assign({ id: C.uid('c'), archived: false }, rec)); });
+      commit(r => withNote(existing ? 'Student updated' : 'Student added', r), () => { if (existing) { Object.assign(existing, rec); return C.settleCovered(state); } state.clients.push(Object.assign({ id: C.uid('c'), archived: false }, rec)); });
     }
     if (f.id === 'quickForm') {
       const client = { name: d.name, subject: '', grade: '', rate: d.rate === '' ? 0 : Number(d.rate), parentName: '', parentEmail: '', volunteerDefault: !!d.volunteer };
@@ -892,9 +895,9 @@
       case 'setMinutes': { const m = document.getElementById(el.dataset.target || 'f-minutes'); if (m) m.value = el.dataset.min; updatePreview(); break; }
       // A session marked paid drops its part payment, the same as saving it as paid in the form and as a backup
       // restore does; otherwise the leftover came back (or didn't, after a reload) when it was marked unpaid again.
-      case 'togglePaid': { const s = state.sessions.find(x => x.id === id); if (s) commit(s.paid ? 'Marked unpaid' : 'Marked paid', () => { s.paid = !s.paid; if (s.paid) delete s.partPaid; }); break; }
+      case 'togglePaid': { const s = state.sessions.find(x => x.id === id); if (s) commit(s.paid ? 'Marked unpaid' : 'Marked paid', () => { C.setPaid(state, s.id, !s.paid); }); break; }
       case 'markPaidAll': { const c = C.clientById(state, id); commit('All of ' + firstName(c && c.name) + "'s sessions marked paid", () => { state.sessions.forEach(s => { if (s.clientId === id && !s.volunteer) { s.paid = true; delete s.partPaid; } }); }); break; }
-      case 'deleteSession': location.hash = 'dashboard'; commit('Session deleted', () => { state.sessions = state.sessions.filter(s => s.id !== id); }); break;
+      case 'deleteSession': location.hash = 'dashboard'; commit(r => withNote('Session deleted', r), () => C.deleteSession(state, id)); break;
       case 'archiveClient': { const c = C.clientById(state, id); if (c) { location.hash = 'students'; commit(c.name + ' archived (history kept)', () => { c.archived = true; }); } break; }
       case 'restoreClient': {
         const c = C.clientById(state, id); if (!c) break;
