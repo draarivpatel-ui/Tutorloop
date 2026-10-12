@@ -309,5 +309,19 @@ test('money already received is never dropped: edit down, rate cut, made volunte
   assert.strictEqual(JSON.stringify(st.sessions.filter(x => x.id !== 'b')), before); assert.strictEqual(s(st, 'b').partPaid, 20); assert.strictEqual(C.creditNote(r), '');
 });
 
+test('deleting a student removes their sessions and recorded payments, and nobody else\'s', () => {
+  for (let k = 0; k < ROUNDS; k++) {
+    const seed = BASE_SEED + 40000 + k, r = rng(seed), st = randomState(r);
+    for (const c of st.clients) { const o = owedC(st, c.id); if (o > 1) C.applyPayment(st, c.id, C.planPayment(st, c.id, (Math.floor(o / 2) / 100).toFixed(2)), '2026-10-11'); }
+    const gone = st.clients[Math.floor(r() * st.clients.length)].id;
+    const keep = st.clients.filter(c => c.id !== gone).map(c => [c.id, owedC(st, c.id), st.payments.filter(p => p.clientId === c.id).length]);
+    C.deleteClient(st, gone);
+    assert.ok(!st.sessions.some(s => s.clientId === gone) && !st.payments.some(p => p.clientId === gone), 'seed ' + seed + ': data left behind');
+    assert.ok(!JSON.stringify(st).includes('"' + gone + '"'), 'seed ' + seed + ': the id still appears in the backup');
+    assert.deepStrictEqual(st.clients.map(c => [c.id, owedC(st, c.id), st.payments.filter(p => p.clientId === c.id).length]), keep, 'seed ' + seed + ': others changed');
+    checkInvariants(st, 'seed ' + seed); checkBackup(st, 'seed ' + seed);
+  }
+});
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed  (seed ' + BASE_SEED + ', ' + ROUNDS + ' rounds; ' + (process.env.TZ || 'system TZ') + ')');
 process.exit(failed ? 1 : 0);

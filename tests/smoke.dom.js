@@ -193,6 +193,11 @@ setTimeout(() => {
         d.querySelector('.toast-undo').click();
         go('dashboard'); d.querySelector('[data-act=markPaidAll][data-id="' + mid + '"]').click();
         ok('Mark paid on a part-paid student leaves no part payment on paid sessions', C2().sessions.filter(x => x.clientId === mid && x.paid && x.partPaid).length === 0);
+        // Delete is for "please remove our data": the family's recorded payments go too (they used to stay in storage and backups).
+        go('students/' + mid); d.querySelector('[data-act=archiveClient]').click();
+        go('students'); d.querySelector('[data-act=deleteClient][data-id="' + mid + '"]').click();
+        ok('deleting a student removes their recorded payments too, so a backup no longer names them',
+           !C2().clients.some(c => c.id === mid) && !(C2().payments || []).some(x => x.clientId === mid) && !w.localStorage.getItem('tutorloop.v1').includes(mid));
         // Money already received is never dropped: part-pay Ethan $40 (oldest first: $40 of his older 90-min $45
         // session), then edit that session down to 30 min ($15). It becomes paid and the extra $25
         // counts toward his next unpaid session; the toast says so; the balance falls by exactly the session's price cut.

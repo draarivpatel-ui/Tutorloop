@@ -802,6 +802,14 @@
     return carryCredit(state, s.clientId, s.partPaid);
   }
 
+  /** Permanently delete a student with everything about them: sessions AND recorded payments
+   *  (the Delete button is for when a family asks for their data to be removed). */
+  function deleteClient(state, id) {
+    state.clients = state.clients.filter(x => x.id !== id);
+    state.sessions = state.sessions.filter(s => s.clientId !== id);
+    state.payments = (state.payments || []).filter(x => x.clientId !== id);
+  }
+
   /** One short sentence for the toast after money moved, or '' when nothing did. */
   function creditNote(r) {
     if (!r) return '';
@@ -842,7 +850,7 @@
 
   const api = {
     SCHEMA_VERSION, FREE_CLIENT_LIMIT, MAX_MINUTES, uid, emptyState, cents, money, plural, isValidDate, addDays,
-    sessionAmount, sessionDue, planPayment, applyPayment, carryCredit, settleCovered, addSession, editSession, setPaid, deleteSession, creditNote, MAX_PAYMENT, clientById, validateClient, validateSession, duplicateNames, duplicateNamesWarning, clientLabel, stats, monthlySeries, balances, lastSession,
+    sessionAmount, sessionDue, planPayment, applyPayment, carryCredit, settleCovered, addSession, editSession, setPaid, deleteSession, deleteClient, creditNote, MAX_PAYMENT, clientById, validateClient, validateSession, duplicateNames, duplicateNamesWarning, clientLabel, stats, monthlySeries, balances, lastSession,
     serviceProgress, rangePreset, topicList, sentiment, sentence, progressReport, reminderMessage, invoice,
     APP_URL, PAY_METHODS, guessPayMethod, paymentText, paymentSentence, referralFooter,
     csvEscape, volunteerCSV, sessionsCSV, importState, demoState, fmtDate, fmtMonth, monthKey,

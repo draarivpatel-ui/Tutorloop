@@ -922,7 +922,7 @@
         const c = C.clientById(state, id); if (!c) break;
         const n = state.sessions.filter(s => s.clientId === id).length;
         if (!confirm('Permanently delete ' + c.name + ' and ' + C.plural(n, 'session') + '? Use this when a family asks you to remove their data.')) break;
-        commit(c.name + ' deleted', () => { state.clients = state.clients.filter(x => x.id !== id); state.sessions = state.sessions.filter(s => s.clientId !== id); });
+        commit(c.name + ' deleted', () => { C.deleteClient(state, id); });   // sessions and payments too
         break;
       }
       case 'copyReport': copyText(document.getElementById('reportOut').value).then(ok => toast(ok ? 'Copied to clipboard' : 'Copy failed. Select the text and copy it manually.')); break;
