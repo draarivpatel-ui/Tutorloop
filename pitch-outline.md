@@ -56,16 +56,17 @@ Freemium, with a B2B2C channel through school clubs.
 **Path to sustainability:** near-zero fixed cost means a handful of Club chapters covers hosting, a sync database, and email many times over. Growth comes through sponsors (one sponsor = 20–50 tutors) rather than paid ads.
 
 ## 5. Go-to-market
-The same four steps appear in order on the app's Why TutorLoop page under "Who pays, and how we reach them".
+The first four steps appear in this order on the app's Why TutorLoop page under "Who pays, and how we reach them".
 1. **Seed:** NHS and math-club members at Math and Science Academy and nearby Fort Bend ISD schools; demo at a chapter meeting.
 2. **Sponsor wedge:** offer one NHS sponsor a free semester of Club in exchange for feedback. The sponsor's pain (collecting and verifying hours) is what drives a chapter-wide rollout.
-3. **Built-in referral (built, opt-in):** a "Sent with TutorLoop" line the tutor can switch on in Settings. It ends parent updates, payment reminders, and invoices with a plain link, so every parent who receives one can find the product. It's off by default and has no tracking or referral code, so we can't measure it yet; measuring would mean adding a privacy-respecting referral count later.
-4. **Content:** short "how I run my tutoring" videos aimed at student tutors.
+3. **Built-in word of mouth (built, opt-in):** a "Sent with TutorLoop" line the tutor can switch on in Settings. It ends parent updates, payment reminders, and invoices with a plain link, so every parent who receives one can find the product. It's off by default and has no tracking or referral code, so we can't measure it yet; measuring would mean adding a privacy-respecting referral count later.
+4. **Annual Pro test:** card and billing fees take 11% of a $4 monthly charge (mostly the flat 30¢) but 4% of a $36 year, so an annual Pro price is the first pricing experiment. The app's fee table has a "Pro (annual) $36.00/yr" row, and the note under it says annual Pro is not on sale yet.
+5. **Content (not on the app page):** short "how I run my tutoring" videos aimed at student tutors.
 
 ## 6. Traction (stated honestly)
 **None yet.** No users, no paying customers, no pilots, no waitlist, no usage numbers. What exists:
 - A working, publicly deployed product at https://aariv.me/Tutorloop/.
-- 65 unit tests, 56 DOM checks, 204 headless-Chromium end-to-end checks and 32 print checks, all passing on Oct 11, 2026 (~8:15 PM ET; re-run before quoting). GitHub Actions runs all four on every push.
+- 65 unit tests, 56 DOM checks, 204 headless-Chromium end-to-end checks and 32 print checks, all passing on Oct 11, 2026 (re-run ~10 PM ET; re-run before quoting). GitHub Actions runs all four on every push.
 - An in-app pitch page that states the same thing: "No paying customers yet, and no usage numbers to claim."
 
 ## 7. Technology (why it can scale cheaply)

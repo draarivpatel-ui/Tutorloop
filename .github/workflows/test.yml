@@ -16,3 +16,4 @@ jobs:
       - run: python tests/e2e.py   # real-browser e2e, offline, axe, mobile layout
       - run: sudo apt-get install -y poppler-utils   # pdfinfo/pdftotext for the print check
       - run: python tests/print_test.py   # every printable page as a Letter PDF: page count, no app chrome, totals
+      - run: python tests/pitch_docs_test.py   # demo-script.md / pitch-outline.md quote what the app shows
