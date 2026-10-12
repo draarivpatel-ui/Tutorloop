@@ -53,7 +53,7 @@ Freemium, with a B2B2C channel through school clubs.
 - **Principle:** we won't charge for Pro's sync or scheduled reminders until they are built. Checkout in the app today is a simulation.
 - Later option: a small fee on payment links if we add in-app payments.
 
-**Path to sustainability:** near-zero fixed cost means a handful of Club chapters covers hosting, a sync database, and email many times over. Growth comes through sponsors (one sponsor = 20–50 tutors) rather than paid ads.
+**Path to sustainability:** the first real bill is sync. On Cloudflare Workers Paid that is $5.00 a month minimum, including a database (developers.cloudflare.com/workers/platform/pricing, checked Oct 11, 2026). After card and billing fees that takes **2 monthly Pro tutors** ($3.56 kept each), **2 annual Pro tutors** ($34.40 a year each vs $60 a year), or **1 Club chapter** ($95.14 covers 19 months). The Why TutorLoop page shows this as a "Break-even, in customers" table computed from the same fee math. Not counted: our own time and usage above Cloudflare's included amounts. Growth comes through sponsors (one sponsor = 20–50 tutors) rather than paid ads.
 
 ## 5. Go-to-market
 The first four steps appear in this order on the app's Why TutorLoop page under "Who pays, and how we reach them".

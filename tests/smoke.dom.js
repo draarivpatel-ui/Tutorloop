@@ -37,6 +37,17 @@ d.querySelector('#quickForm [data-min="45"]').click();
 submit(q);
 ok('quick start saves one student and one 45-minute session', saved().clients.length === 1 && saved().sessions.length === 1 && saved().sessions[0].minutes === 45);
 ok('first-run callout shows the drafted parent update and a $18.75 invoice', !!d.querySelector('.firstrun') && text().includes('Riya is making clear progress') && text().includes('$18.75'));
+ok('first run says what is free and links to how TutorLoop makes money', /free for up to 3 students, with no account/.test(d.querySelector('.firstrun').textContent) && !!d.querySelector('.firstrun a[href="#about"]'));
+go('about');
+{ const be = d.getElementById('breakeven'), t = be ? be.textContent.replace(/\s+/g, ' ') : '';
+  ok('Why TutorLoop: break-even table from the fee math ($5/mo sync: 2 monthly Pro, 2 annual Pro, 1 Club covers 19 months), sourced',
+     t.includes('$5.00 a month') && t.includes('$3.56/mo') && t.includes('$34.40/yr') && t.includes('$95.14/school yr') && (t.match(/2 tutors/g) || []).length === 2 && t.includes('1 chapter covers 19 months') &&
+     !!be.querySelector('a[href="https://developers.cloudflare.com/workers/platform/pricing/"]') && t.includes('Not counted'));
+  ok('Why TutorLoop: the 50-tutor Club is described as planned, and the page still says no paying customers', /meant to cover up to 50 tutors.*today TutorLoop is single-tutor/.test(text()) && text().includes('No paying customers yet')); }
+go('settings');
+{ const cards = [...d.querySelectorAll('.plan')].map(c => c.textContent.replace(/\s+/g, ' '));
+  ok('Settings plans: Pro shows the $36/yr option as not on sale; Club marks 50 tutors as roadmap', /\$36 a year not on sale yet/.test(cards[1]) && /Up to 50 tutors roadmap/.test(cards[2])); }
+go('dashboard');
 // Toast: has a close button, and closing removes it completely (hidden + emptied), not just faded out.
 const toastBox = d.getElementById('toast');
 ok('toast shows with Undo and a close button', toastBox.classList.contains('show') && !toastBox.hidden && !!toastBox.querySelector('.toast-close') && !!toastBox.querySelector('.toast-undo'));

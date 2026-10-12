@@ -270,7 +270,8 @@
                 : `<li><a href="#invoices/${esc(fc.id)}">Invoice</a> for ${C.money(C.sessionAmount(firstRun, fc))}, ready to print or save as PDF</li>`}
               <li><a href="#students/${esc(fc.id)}">Add a parent email</a> so updates and reminders open addressed${fc.parentEmail ? ' (done)' : ''}</li>
               <li><a href="#settings">Add your name and payment handle</a> so they appear on everything${state.profile.name ? ' (done)' : ''}</li>
-              <li><a href="#summary">Monthly summary</a> to print or send at the end of the month</li></ul></div>
+              <li><a href="#summary">Monthly summary</a> to print or send at the end of the month</li>
+              <li class="muted">All of this is free for up to ${C.FREE_CLIENT_LIMIT} students, with no account. <a href="#about">How TutorLoop makes money</a></li></ul></div>
           </div></section>` : '';
       return `
         <h1 tabindex="-1">${hello} 👋</h1>
@@ -523,7 +524,8 @@
 
     about() {
       // Competitor list prices, copied from the vendors' own pricing pages (monthly billing, USD) on CMP.checked.
-      const CMP = { checked: 'Oct 10, 2026', checkedMarket: 'Oct 11, 2026', lessons: 8,
+      const CMP = { checked: 'Oct 10, 2026', checkedMarket: 'Oct 11, 2026', checkedCost: 'Oct 11, 2026', lessons: 8,
+        syncMonthly: 5,                                   // https://developers.cloudflare.com/workers/platform/pricing/ (Workers Paid: $5/mo minimum, includes D1 + KV)
         tutorbird: { base: 16.95, perTutor: 4.95 },      // https://www.tutorbird.com/pricing/
         teachworks: { base: 16.49, perLesson: 0.32 } };  // https://teachworks.com/pricing (Starter: $16.49/mo + $0.320 per student lesson)
       // Founder pitch / landing page. Every number here is either a list price, a published fee,
@@ -584,13 +586,25 @@
           <section class="card"><h3>The channel: NHS chapters</h3>
             <ul><li>The National Honor Society has <b>17,000+ chapters</b> serving more than <b>1.4 million</b> students.</li>
               <li>The average chapter contributes about <b>1,000 hours</b> of service a year, and membership is based on four pillars, one of which is service. Someone has to collect and check those hours.</li>
-              <li>One Club plan covers up to 50 tutors, so one adviser saying yes brings a whole chapter.</li></ul>
+              <li>One Club plan is meant to cover up to 50 tutors, so one adviser saying yes brings a whole chapter (once the sponsor dashboard exists; today TutorLoop is single-tutor).</li></ul>
             <p class="sub small">Sources: <a href="https://www.nationalhonorsociety.org/about/" target="_blank" rel="noopener">NHS: About</a> and <a href="https://en.wikipedia.org/wiki/National_Honor_Society" target="_blank" rel="noopener">Wikipedia</a> (citing NHS's own history page). Checked ${CMP.checkedMarket}.</p></section>
           <section class="card"><h3>The math, honestly</h3>
             <ul><li><b>Ceiling, not a forecast:</b> if every chapter paid for Club, that's 17,000 × ${C.money(99 - fee(99))} kept ≈ <b>$${(17000 * (99 - fee(99)) / 1e6).toFixed(1)} million</b> a year.</li>
               <li><b>Costs today: $0 a month.</b> Free static hosting and no server, so each free tutor costs us about nothing to serve.</li>
               <li><b>First real cost</b> is a sync server for Pro. We only build it once paying users ask for it, so revenue arrives before that cost does.</li></ul></section>
         </div>
+        ${(() => {
+          // Break-even for the first real cost, using the fee() math above. Ceilings are rounded UP: you can't have 1.4 customers.
+          const proM = 4 - fee(4), proY = 36 - fee(36), club = 99 - fee(99), yearCost = CMP.syncMonthly * 12;
+          return `<section class="card mt-s" id="breakeven"><h3>Break-even, in customers</h3>
+          <p class="sub">The first bill arrives with sync. We'd run it on Cloudflare Workers Paid: <b>${C.money(CMP.syncMonthly)} a month</b> minimum, which includes a database and 10 million requests a month (<a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank" rel="noopener">Cloudflare pricing</a>, checked ${CMP.checkedCost}). What it takes to cover that, after card and billing fees:</p>
+          <table class="stack"><thead><tr><th scope="col">Paid by</th><th scope="col" class="num">TutorLoop keeps</th><th scope="col" class="num">Needed to cover sync</th></tr></thead><tbody>
+            <tr><td data-label="Paid by">Pro, monthly</td><td data-label="TutorLoop keeps" class="num">${C.money(proM)}/mo</td><td data-label="Needed to cover sync" class="num"><b>${C.plural(Math.ceil(CMP.syncMonthly / proM), 'tutor')}</b></td></tr>
+            <tr><td data-label="Paid by">Pro, annual</td><td data-label="TutorLoop keeps" class="num">${C.money(proY)}/yr</td><td data-label="Needed to cover sync" class="num"><b>${C.plural(Math.ceil(yearCost / proY), 'tutor')}</b></td></tr>
+            <tr><td data-label="Paid by">Club</td><td data-label="TutorLoop keeps" class="num">${C.money(club)}/school yr</td><td data-label="Needed to cover sync" class="num"><span><b>1 chapter</b> covers ${Math.floor(club / CMP.syncMonthly)} months</span></td></tr>
+          </tbody></table>
+          <p class="sub mt-s">So sustainability doesn't need scale: a couple of paying tutors or one chapter covers the server, and every customer after that is margin. Not counted: our own time, and Cloudflare usage above the included amounts.</p></section>`;
+        })()}
         <section class="card mt-s"><h3>Go-to-market, in order</h3>
           <ol><li><b>Seed:</b> NHS and math-club tutors at our own school and nearby Fort Bend ISD schools; demo at a chapter meeting.</li>
             <li><b>Sponsor wedge:</b> one NHS adviser gets a free semester of Club in exchange for feedback. Their pain (collecting and checking hours) is what drives a chapter-wide rollout.</li>
@@ -661,8 +675,8 @@
         })()}
         <div class="grid plans">
           ${plan('free', 'Free', '$0', '', ['Up to 3 active students', 'Session log &amp; dashboard', 'Parent updates &amp; payment reminders', 'Invoices and service-hour export'], `<button class="btn ghost" data-act="plan" data-plan="free">Switch to Free</button>`)}
-          ${plan('pro', 'Pro', '$4', '/month', ['Unlimited students', 'Everything in Free', 'Cloud sync across devices <span class="tag">roadmap</span>', 'Scheduled reminders <span class="tag">roadmap</span>'], `<button class="btn" data-act="plan" data-plan="pro">Try Pro (demo)</button>`)}
-          ${plan('club', 'Club', '$99', '/school year', ['For NHS chapters &amp; peer-tutoring clubs', 'Up to 50 tutors', 'Sponsor dashboard <span class="tag">roadmap</span>', 'Verified service-hour reports <span class="tag">roadmap</span>'], `<button class="btn ghost" data-act="plan" data-plan="club">Try Club (demo)</button>`)}
+          ${plan('pro', 'Pro', '$4', '/month', ['Unlimited students', 'Everything in Free', 'Or $36 a year <span class="tag">not on sale yet</span>', 'Cloud sync across devices <span class="tag">roadmap</span>', 'Scheduled reminders <span class="tag">roadmap</span>'], `<button class="btn" data-act="plan" data-plan="pro">Try Pro (demo)</button>`)}
+          ${plan('club', 'Club', '$99', '/school year', ['For NHS chapters &amp; peer-tutoring clubs', 'Unlimited students for the sponsor today', 'Up to 50 tutors <span class="tag">roadmap</span>', 'Sponsor dashboard <span class="tag">roadmap</span>', 'Verified service-hour reports <span class="tag">roadmap</span>'], `<button class="btn ghost" data-act="plan" data-plan="club">Try Club (demo)</button>`)}
         </div>`;
     }
   };

@@ -133,6 +133,10 @@ try:
         check('pitch 4 quotes the same unit economics', '$3.56 kept per month (89%)' in PITCH and '$95.14 kept per year (96%)' in PITCH and '$3.56 of a Pro month' in DEMO)
         check('pitch 3: "$1.6 million" ceiling, 1,000 hours a chapter, 50 tutors per Club are on the page',
               'Ceiling, not a forecast' in t and '$1.6 million a year' in t and 'about 1,000 hours of service a year' in t and 'up to 50 tutors' in t)
+        i = t.find('Break-even, in customers'); be = t[i:i + 900].replace('\t', ' ')
+        check('pitch 4 path to sustainability: break-even on the page ($5.00 a month sync -> 2 monthly Pro, 2 annual Pro, 1 Club covers 19 months) and the same numbers in the pitch',
+              i >= 0 and '$5.00 a month' in be and be.count('2 tutors') == 2 and '1 chapter covers 19 months' in be and
+              all(x in PITCH for x in ('$5.00 a month', '**2 monthly Pro tutors**', '**2 annual Pro tutors**', '**1 Club chapter**', '19 months')), be[:400])
         i = t.find('Go-to-market, in order'); gtm = t[i:i + 900]
         app_steps = [s for s in ('Seed:', 'Sponsor wedge:', 'Built-in word of mouth:', 'Annual Pro test:') if s in gtm]
         pos = [gtm.find(s) for s in app_steps]
