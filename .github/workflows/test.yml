@@ -2,7 +2,7 @@ name: tests
 on: [push, pull_request]
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned: ubuntu-latest moves to 26.04 from Oct 19, 2026 (actions/runner-images#14748)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -12,7 +12,7 @@ jobs:
       - run: npm run test:dom   # jsdom smoke test
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
-      - run: pip install playwright && python -m playwright install --with-deps chromium
+      - run: pip install playwright==1.63.0 && python -m playwright install --with-deps chromium
       - run: python tests/e2e.py   # real-browser e2e, offline, axe, mobile layout
       - run: sudo apt-get install -y poppler-utils   # pdfinfo/pdftotext for the print check
       - run: python tests/print_test.py   # every printable page as a Letter PDF: page count, no app chrome, totals
