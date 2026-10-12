@@ -65,7 +65,7 @@ The same four steps appear in order on the app's Why TutorLoop page under "Who p
 ## 6. Traction (stated honestly)
 **None yet.** No users, no paying customers, no pilots, no waitlist, no usage numbers. What exists:
 - A working, publicly deployed product at https://aariv.me/Tutorloop/.
-- 65 unit tests, 52 DOM checks, 174 headless-Chromium end-to-end checks and 32 print checks, all passing on Oct 11, 2026 (~8:15 PM ET; re-run before quoting). GitHub Actions runs all four on every push.
+- 65 unit tests, 55 DOM checks, 174 headless-Chromium end-to-end checks and 32 print checks, all passing on Oct 11, 2026 (~8:15 PM ET; re-run before quoting). GitHub Actions runs all four on every push.
 - An in-app pitch page that states the same thing: "No paying customers yet, and no usage numbers to claim."
 
 ## 7. Technology (why it can scale cheaply)

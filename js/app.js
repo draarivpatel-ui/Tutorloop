@@ -271,7 +271,7 @@
           </section>
           <section class="card"><h2>Who owes you</h2>
             ${bal.length ? `<table class="stack"><thead><tr><th scope="col">Student</th><th scope="col" class="num">Owed</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>
-              ${bal.map(b => `<tr><td data-label="Student" class="who"><div><b>${esc(b.client.name)}</b><div class="muted small">${C.plural(b.unpaidSessions, 'unpaid session')} since ${esc(fd(b.oldestUnpaid))}</div></div></td>
+              ${bal.map(b => `<tr><td data-label="Student" class="who"><div><b>${esc(b.client.name)}</b>${b.client.archived ? ' <span class="pill">archived</span>' : ''}<div class="muted small">${C.plural(b.unpaidSessions, 'unpaid session')} since ${esc(fd(b.oldestUnpaid))}</div></div></td>
               <td data-label="Owed" class="num warn"><b>${C.money(b.owed)}</b>${b.partPaid > 0 ? `<div class="muted small part-paid">${C.money(b.partPaid)} of ${C.money(b.unpaidBilled)} paid</div>` : ''}</td>
               <td class="num row-actions"><a class="btn small ghost" href="#invoices/${esc(b.client.id)}">Invoice</a>
                 <a class="btn small ghost" href="${esc(mailto(b.client.parentEmail, 'Tutoring balance for ' + b.client.name, C.reminderMessage(state, b.client.id)))}">Remind</a>
@@ -867,8 +867,10 @@
         else { location.hash = 'dashboard'; setTimeout(focusQuickStart, 60); }
         break;
       case 'setMinutes': { const m = document.getElementById(el.dataset.target || 'f-minutes'); if (m) m.value = el.dataset.min; updatePreview(); break; }
-      case 'togglePaid': { const s = state.sessions.find(x => x.id === id); if (s) commit(s.paid ? 'Marked unpaid' : 'Marked paid', () => { s.paid = !s.paid; }); break; }
-      case 'markPaidAll': { const c = C.clientById(state, id); commit('All of ' + firstName(c && c.name) + "'s sessions marked paid", () => { state.sessions.forEach(s => { if (s.clientId === id && !s.volunteer) s.paid = true; }); }); break; }
+      // A session marked paid drops its part payment, the same as saving it as paid in the form and as a backup
+      // restore does; otherwise the leftover came back (or didn't, after a reload) when it was marked unpaid again.
+      case 'togglePaid': { const s = state.sessions.find(x => x.id === id); if (s) commit(s.paid ? 'Marked unpaid' : 'Marked paid', () => { s.paid = !s.paid; if (s.paid) delete s.partPaid; }); break; }
+      case 'markPaidAll': { const c = C.clientById(state, id); commit('All of ' + firstName(c && c.name) + "'s sessions marked paid", () => { state.sessions.forEach(s => { if (s.clientId === id && !s.volunteer) { s.paid = true; delete s.partPaid; } }); }); break; }
       case 'deleteSession': location.hash = 'dashboard'; commit('Session deleted', () => { state.sessions = state.sessions.filter(s => s.id !== id); }); break;
       case 'archiveClient': { const c = C.clientById(state, id); if (c) { location.hash = 'students'; commit(c.name + ' archived (history kept)', () => { c.archived = true; }); } break; }
       case 'restoreClient': {

@@ -165,6 +165,23 @@ setTimeout(() => {
         const cf2 = d.getElementById('clientForm'); cf2.querySelector('[name=name]').value = 'Maya Chen G.'; submit(cf2);
         go('students');
         ok('renaming one twin clears the notice', !d.getElementById('dupNote'));
+        // Archive -> restore -> pay: a part payment, then the student is archived (still owes, shown as archived on
+        // the dashboard), restored, and paid off; Mark paid on a part-paid student leaves no stale partPaid behind.
+        go('settings'); d.querySelector('[data-act=demo]').click();
+        const mid = C2().clients.find(c => /Maya/.test(c.name)).id;
+        go('invoices/' + mid); d.getElementById('pay-amount').value = '10'; submit(d.getElementById('payForm'));
+        go('students/' + mid); d.querySelector('[data-act=archiveClient]').click();
+        go('dashboard');
+        const mrow = [...d.querySelectorAll('#app table.stack tbody tr')].find(tr => tr.textContent.includes('Maya Chen'));
+        ok('an archived student who still owes is listed in Who owes you, tagged archived', !!mrow && /archived/.test(mrow.textContent));
+        go('students'); d.querySelector('[data-act=restoreClient][data-id="' + mid + '"]').click();
+        go('invoices/' + mid); const rest = w.TutorCore.balances(C2()).find(b => b.client.id === mid).owed;
+        d.getElementById('pay-amount').value = String(rest); submit(d.getElementById('payForm'));
+        ok('after archive and restore, paying the rest clears the balance and logs both payments',
+           w.TutorCore.balances(C2()).find(b => b.client.id === mid).owed === 0 && C2().payments.filter(x => x.clientId === mid).map(x => x.amount).join() === '10,' + rest);
+        d.querySelector('.toast-undo').click();
+        go('dashboard'); d.querySelector('[data-act=markPaidAll][data-id="' + mid + '"]').click();
+        ok('Mark paid on a part-paid student leaves no part payment on paid sessions', C2().sessions.filter(x => x.clientId === mid && x.paid && x.partPaid).length === 0);
         ok('no uncaught errors', errors.length === 0);
         console.log(`\n${n} DOM checks passed`);
       }, 150);
