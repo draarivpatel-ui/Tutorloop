@@ -438,6 +438,49 @@ console.log(JSON.stringify(s));""", str(ROOT / 'js' / 'core.js')]).decode()
             check(f'kbd {w}px: no console errors in the keyboard payment pass', not kb_console, kb_console)
             ctx.close()
 
+        # form errors point at their field (WCAG 3.3.1) and duration chips keep their visible text in their name (2.5.3), at 390 px
+        ctx = b.new_context(viewport={'width': 390, 'height': 844}, bypass_csp=True); pg = ctx.new_page(); pg.on('dialog', lambda d: d.accept())
+        fe_err = []; pg.on('pageerror', lambda e: fe_err.append(str(e)))
+        pg.goto(URL); pg.wait_for_timeout(300)
+        axe_src = AXE_PATH.read_text() if AXE_PATH.exists() else None
+        LCNM = "async () => (await axe.run(document, {runOnly: ['label-content-name-mismatch']})).violations.map(v => v.nodes.map(n => n.target.join(' ')).join(' | '))"
+        if axe_src:
+            pg.evaluate(axe_src); v = pg.evaluate(LCNM)
+            check('quick start: duration chips keep their visible text in their accessible name (axe label-content-name-mismatch)', not v, v)
+        INV = "s => { const f = document.querySelector(s), box = f.querySelector('.form-errors'); return [...f.querySelectorAll('[aria-invalid=true]')].map(e => e.name + ((e.getAttribute('aria-describedby') || '').split(' ').includes(box.id) ? '+linked' : '')); }"
+        pg.fill('#q-name', ''); pg.fill('#q-minutes', '0'); pg.click('#quickForm button[type=submit]'); pg.wait_for_timeout(150)
+        bad = pg.evaluate(INV, '#quickForm')
+        check('quick start: blank name and 0 minutes mark exactly those fields invalid, linked to the errors', sorted(bad) == ['minutes+linked', 'name+linked'], bad)
+        pg.fill('#q-name', 'Riya Shah'); pg.click('#quickForm button[type=submit]'); pg.wait_for_timeout(150)
+        bad = pg.evaluate(INV, '#quickForm')
+        check('quick start: once the name is fixed only minutes stays invalid', bad == ['minutes+linked'], bad)
+        pg.click('#app [data-act=demo]'); pg.wait_for_timeout(300)
+        go(pg, 'log')
+        if axe_src:
+            pg.evaluate(axe_src); v = pg.evaluate(LCNM)
+            check('log page: duration chips pass axe label-content-name-mismatch', not v, v)
+        check('log page: duration chip reads "45 min"', pg.inner_text('[data-act=setMinutes][data-min="45"]').strip() == '45 min')
+        pg.fill('#f-minutes', '0'); pg.evaluate("document.getElementById('f-notes').value = 'x'")
+        pg.evaluate("document.getElementById('sessionForm').requestSubmit()"); pg.wait_for_timeout(150)
+        bad = pg.evaluate(INV, '#sessionForm')
+        notes_db = pg.get_attribute('#f-notes', 'aria-describedby')
+        check('log page: bad duration marks only Minutes invalid and links it to the errors', bad == ['minutes+linked'], bad)
+        check('log page: other fields keep their own help text link', notes_db == 'notes-help', notes_db)
+        pg.evaluate("location.hash = 'students/c_ethan'"); pg.wait_for_timeout(300)  # edit form (the sample data is at the Free limit, so Add is disabled)
+        pg.fill('#c-name', ''); pg.evaluate("document.getElementById('clientForm').requestSubmit()"); pg.wait_for_timeout(150)
+        bad = pg.evaluate(INV, '#clientForm')
+        check('students: blank name marks the name field invalid and linked', 'name+linked' in bad and not any(x.startswith('rate') for x in bad), bad)
+        go(pg, 'settings')
+        pg.fill('#p-email', 'bad@'); pg.evaluate("document.getElementById('profileForm').requestSubmit()"); pg.wait_for_timeout(150)
+        bad = pg.evaluate(INV, '#profileForm')
+        check('settings: an invalid email marks the email field invalid and linked', bad == ['email+linked'], bad)
+        if axe_src:
+            pg.evaluate(axe_src)
+            v = pg.evaluate("async () => (await axe.run(document, {runOnly: ['wcag2a','wcag2aa','wcag21aa']})).violations.map(v => v.id)")
+            check('settings with an error showing: axe WCAG 2.1 AA 0 violations', not v, v)
+        check('form-error checks: no page errors', not fe_err, fe_err)
+        ctx.close()
+
         # layout + accessibility on every page, desktop and phone
         axe = AXE_PATH.read_text() if AXE_PATH.exists() else None
         for vp_name, vp in [('desk', {'width': 1280, 'height': 900}), ('mob', {'width': 390, 'height': 844})]:
