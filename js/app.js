@@ -694,6 +694,9 @@
     const { route, params } = parseHash();
     const key = route + '/' + params.join('/');
     const routeChanged = key !== lastRoute;
+    // A same-page re-render (e.g. the hashchange that follows a save that already rendered the new page) replaces
+    // the focused element; without this, keyboard focus fell to <body> (seen after restoring a backup).
+    const ae = document.activeElement, hadFocus = !!ae && $app.contains(ae), prevFocusId = hadFocus && ae !== $app ? ae.id : '';
     $app.innerHTML = views[route](params);
     if (state.sample && route !== 'about') {
       // Without this, someone who tapped "Try it with sample data" had no obvious way back to a clean start (it was buried in Settings > Erase all data).
@@ -715,6 +718,9 @@
       if (keep) keep.focus({ preventScroll: true });
       else if (lastRoute !== null) { const h1 = document.querySelector('#app h1'); if (h1) h1.focus({ preventScroll: true }); }
       const act = document.querySelector('#nav a.active'); if (act && act.scrollIntoView && window.innerWidth < 720) act.scrollIntoView({ block: 'nearest', inline: 'center' });
+    } else if (hadFocus && !$app.contains(document.activeElement)) {
+      const el = (prevFocusId && document.getElementById(prevFocusId)) || document.querySelector('#app h1');
+      if (el) el.focus({ preventScroll: true });
     }
     lastRoute = key;
   }
