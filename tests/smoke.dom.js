@@ -182,6 +182,12 @@ setTimeout(() => {
         d.querySelector('.toast-undo').click();
         go('dashboard'); d.querySelector('[data-act=markPaidAll][data-id="' + mid + '"]').click();
         ok('Mark paid on a part-paid student leaves no part payment on paid sessions', C2().sessions.filter(x => x.clientId === mid && x.paid && x.partPaid).length === 0);
+        // A student with no sessions yet: the invoice page says there is nothing to bill and offers to log one
+        go('settings'); d.querySelector('[data-act=reset]').click();
+        go('students'); const nf = d.getElementById('clientForm'); nf.querySelector('[name=name]').value = 'Nina Fresh'; nf.querySelector('[name=rate]').value = '20'; submit(nf);
+        const nid = C2().clients.find(c => c.name === 'Nina Fresh').id;
+        go('invoices/' + nid);
+        ok('invoice for a student with no sessions says nothing to bill and links to Log a session', /No sessions logged for Nina yet/.test(text()) && !!d.querySelector('#app a[href="#log/for/' + nid + '"]') && !/🎉/.test(text()));
         ok('no uncaught errors', errors.length === 0);
         console.log(`\n${n} DOM checks passed`);
       }, 150);

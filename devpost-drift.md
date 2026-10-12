@@ -15,3 +15,10 @@ Free/Pro/Club prices, "no traction yet", on-device processing, CSV injection pro
 
 ## For Aariv
 No action required; the judges see the live app, which is ahead of the text. If you ever re-edit the page (deadline Oct 15 4 PM CT), use devpost.md, which already carries 60/45/128.
+
+## Re-check Sun Oct 11, 2026 ~8:30 PM EDT (team-a r3, read-only web_fetch of https://devpost.com/software/tutorloop; Devpost not edited)
+Automated now: `python3 tests/devpost_claims.py` (57 checks local incl. offline + manifest; 55 with `--live` on aariv.me) clicks every app claim on the page at 1280 and 390 px: 30-second first run, 30/45/60/90 chips + live preview, dashboard KPIs + 6-month chart + Who owes you (Invoice / Remind / Mark paid) + Quick log, Remind ends "You can pay with Venmo @...", footer off by default, parent update edit/copy/email, printable invoice, service hours CSV + sponsor signature line, monthly summary (all / family statement; print, copy, email), backup/restore/CSV/erase, undo, Free 3 / Pro $4 / Club $99, $3.56 / $95.14, 17,000+ chapters, "No paying customers yet", demo checkout. All pass; nothing regressed.
+Mismatches on the frozen page:
+1. Test counts 47 unit / 30 DOM / 92 e2e: now 65 unit (+ service-worker check) / 55 DOM / 174 e2e / 32 print (understates).
+2. "Club alone is a ~$1.7M/year ceiling": the app's Why page says ≈ $1.6 million, because it multiplies 17,000 by what TutorLoop keeps after Stripe fees ($95.14), while Devpost rounds the gross (17,000 × $99 = $1.68M). Both are true; just different bases.
+3. The page doesn't mention part payments, the duplicate-name rule or the backup duplicate-name warning (the app does more than the text says).

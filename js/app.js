@@ -423,7 +423,8 @@
           ${inv.items.length ? `<table><thead><tr><th scope="col">Date</th><th scope="col">Topics</th><th scope="col" class="num">Time</th><th scope="col" class="num">Amount</th></tr></thead><tbody>
             ${inv.items.map(i => `<tr><td>${esc(C.fmtDate(i.date, true))}</td><td>${esc(i.topics)}</td><td class="num">${i.minutes} min</td><td class="num">${i.partPaid ? `${C.money(i.amount)}<div class="muted small">${C.money(i.partPaid)} of ${C.money(i.full)} already paid</div>` : C.money(i.amount)}</td></tr>`).join('')}
             </tbody><tfoot><tr><td colspan="3" class="num"><b>Total due</b></td><td class="num"><b>${C.money(inv.total)}</b></td></tr></tfoot></table>
-            ${p.venmo ? `<p>Pay with: <b>${esc(C.paymentText(p))}</b></p>` : '<p class="muted no-print">Tip: add your Venmo or Zelle handle in <a href="#settings">Settings</a> so it prints here.</p>'}` : '<p class="sub">No unpaid sessions for this student. 🎉</p>'}
+            ${p.venmo ? `<p>Pay with: <b>${esc(C.paymentText(p))}</b></p>` : '<p class="muted no-print">Tip: add your Venmo or Zelle handle in <a href="#settings">Settings</a> so it prints here.</p>'}` : (state.sessions.some(x => x.clientId === id) ? '<p class="sub">No unpaid sessions for this student. 🎉</p>'
+              : `<p class="sub">No sessions logged for ${esc(firstName(inv.client.name))} yet, so there is nothing to bill.</p><p class="no-print"><a class="btn small" href="#log/for/${esc(id)}">Log a session for ${esc(firstName(inv.client.name))}</a></p>`)}
           <p class="muted">Thank you!</p>
           ${p.referralFooter ? `<p class="muted referral">Sent with TutorLoop, a free app for student tutors: <a href="${esc(C.APP_URL)}">${esc(C.APP_URL.replace(/^https:\/\//, ''))}</a></p>` : ''}
         </article>`;
