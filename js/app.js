@@ -170,11 +170,24 @@
     return o;
   }
 
+  // Which field each validation message is about, so the field can say it is invalid and point at the message.
+  const FIELD_FOR = [[/^Student name|student named/i, 'name'], [/^Hourly rate|^Rate override/i, 'rate'], [/^Parent email/i, 'parentEmail'],
+    [/^Email/i, 'email'], [/^Pick a student/i, 'clientId'], [/\bdate\b|the year/i, 'date'], [/^Duration/i, 'minutes'], [/goal/i, 'serviceGoal']];
   /** Show a form's errors in its role=alert box. Multi-field forms move focus to the box; a one-field form passes
    *  that field as focusEl, so the user can fix it at once and the alert is read once (not again as the focused box). */
   function showErrors(form, errs, focusEl) {
     const box = form.querySelector('.form-errors');
     box.innerHTML = errs.length ? '<ul>' + errs.map(e => '<li>' + esc(e) + '</li>').join('') + '</ul>' : '';
+    // Mark the fields the messages are about (WCAG 3.3.1) and point them at the message box; clear fields now fixed.
+    if (!box.id) box.id = (form.id || 'form') + '-errors';
+    const bad = new Set(errs.map(e => (FIELD_FOR.find(([re]) => re.test(e)) || [])[1]).filter(Boolean));
+    Array.prototype.forEach.call(form.elements, el => {
+      if (!el.name || el.id === 'pay-amount' || el.type === 'hidden' || el.type === 'submit' || el.type === 'button') return;  // pay-amount is wired by hand
+      const ids = (el.getAttribute('aria-describedby') || '').split(/\s+/).filter(x => x && x !== box.id);
+      if (bad.has(el.name)) { el.setAttribute('aria-invalid', 'true'); ids.push(box.id); }
+      else el.removeAttribute('aria-invalid');
+      if (ids.length) el.setAttribute('aria-describedby', ids.join(' ')); else el.removeAttribute('aria-describedby');
+    });
     if (!errs.length) return;
     if (focusEl) { focusEl.focus(); if (focusEl.select) focusEl.select(); } else box.focus();
   }
@@ -219,7 +232,7 @@
               <div><label for="q-name">Student name</label><input id="q-name" name="name" maxlength="80" autocomplete="off" placeholder="e.g. Maya Chen" required></div>
               <div><label for="q-rate">Rate ($/hr)</label><input id="q-rate" name="rate" type="number" inputmode="decimal" min="0" max="1000" step="0.01" value="25"></div>
               <div><label for="q-minutes">Minutes today</label><input id="q-minutes" name="minutes" type="number" inputmode="numeric" min="1" max="${C.MAX_MINUTES}" step="1" value="60" required>
-                <div class="chips" role="group" aria-label="Quick durations">${[30, 45, 60, 90].map(m => `<button type="button" class="chip" data-act="setMinutes" data-target="q-minutes" data-min="${m}" aria-label="${m} minutes">${m}m</button>`).join('')}</div></div>
+                <div class="chips" role="group" aria-label="Quick durations">${[30, 45, 60, 90].map(m => `<button type="button" class="chip" data-act="setMinutes" data-target="q-minutes" data-min="${m}" >${m} min</button>`).join('')}</div></div>
             </div>
             <div class="row">
               <div><label for="q-topics">What did you work on?</label><input id="q-topics" name="topics" maxlength="300" placeholder="e.g. fractions, word problems"></div>
@@ -302,7 +315,7 @@
         s = { clientId: pick.id, date: today(), minutes: last ? last.minutes : 60, rate: last ? last.rate : null, topics: '', notes: '', paid: false,
           volunteer: last ? !!last.volunteer : !!pick.volunteerDefault, lastTopics: last ? last.topics : '' };
       }
-      const chip = m => `<button type="button" class="chip" data-act="setMinutes" data-min="${m}" aria-label="${m} minutes">${m}m</button>`;
+      const chip = m => `<button type="button" class="chip" data-act="setMinutes" data-min="${m}" >${m} min</button>`;
       return `
         <h1 tabindex="-1">${editing ? 'Edit session' : 'Log a session'}</h1>
         <p class="sub">Takes about 10 seconds. Topics and notes power your parent updates.</p>
