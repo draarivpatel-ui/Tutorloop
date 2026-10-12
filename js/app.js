@@ -909,8 +909,8 @@
       case 'setMinutes': { const m = document.getElementById(el.dataset.target || 'f-minutes'); if (m) m.value = el.dataset.min; updatePreview(); break; }
       // A session marked paid drops its part payment, the same as saving it as paid in the form and as a backup
       // restore does; otherwise the leftover came back (or didn't, after a reload) when it was marked unpaid again.
-      case 'togglePaid': { const s = state.sessions.find(x => x.id === id); if (s) commit(s.paid ? 'Marked unpaid' : 'Marked paid', () => { C.setPaid(state, s.id, !s.paid); }); break; }
-      case 'markPaidAll': { const c = C.clientById(state, id); commit('All of ' + firstName(c && c.name) + "'s sessions marked paid", () => { state.sessions.forEach(s => { if (s.clientId === id && !s.volunteer) { s.paid = true; delete s.partPaid; } }); }); break; }
+      case 'togglePaid': { const s = state.sessions.find(x => x.id === id); if (s) commit(r => withNote(s.paid ? 'Marked unpaid' : 'Marked paid', r), () => C.setPaid(state, s.id, !s.paid)); break; }
+      case 'markPaidAll': { const c = C.clientById(state, id); commit('All of ' + firstName(c && c.name) + "'s sessions marked paid", () => { state.sessions.forEach(s => { if (s.clientId === id && !s.volunteer && !s.paid) C.setPaid(state, s.id, true); }); }); break; }
       case 'deleteSession': location.hash = 'dashboard'; commit(r => withNote('Session deleted', r), () => C.deleteSession(state, id)); break;
       case 'archiveClient': { const c = C.clientById(state, id); if (c) { location.hash = 'students'; commit(c.name + ' archived (history kept)', () => { c.archived = true; }); } break; }
       case 'restoreClient': {

@@ -59,6 +59,15 @@ function checkInvariants(st, where) {
     // a session whose part payments cover it in full is paid, never "unpaid with $0 left"
     if (!s.paid && !s.volunteer && amt > 0) assert.ok(due > 0, ctx('session ' + s.id + ' is unpaid but owes $0 (part paid ' + s.partPaid + ' of ' + amt + ')'));
     if (s.paid || s.volunteer) assert.ok(!(Number(s.partPaid) > 0), ctx('paid/volunteer session keeps a part payment'));
+
+    // a held part payment (kept while a session is marked paid, restored by Mark unpaid) lives only on paid sessions
+    if (!s.paid || s.volunteer) assert.ok(!(Number(s.heldPaid) > 0), ctx('unpaid/volunteer session keeps a held part payment'));
+  }
+  // TutorLoop never claims more money received toward a family's sessions than its payments log holds
+  for (const c of st.clients) {
+    const claimed = st.sessions.filter(s => s.clientId === c.id).reduce((a, s) => a + toC(Number(s.partPaid) || 0) + toC(Number(s.heldPaid) || 0), 0);
+    const logged = (st.payments || []).filter(p => p.clientId === c.id).reduce((a, p) => a + toC(p.amount), 0);
+    assert.ok(claimed <= logged, ctx('part payments on sessions (' + claimed + 'c) exceed the payments log (' + logged + 'c) for ' + c.id));
   }
   const bal = C.balances(st);
   for (const b of bal) {
@@ -307,6 +316,46 @@ test('money already received is never dropped: edit down, rate cut, made volunte
   // 7. edits that don't touch money change nothing else
   st = mk(); const before = JSON.stringify(st.sessions.filter(x => x.id !== 'b')); r = C.editSession(st, 'b', { topics: 'fractions' });
   assert.strictEqual(JSON.stringify(st.sessions.filter(x => x.id !== 'b')), before); assert.strictEqual(s(st, 'b').partPaid, 20); assert.strictEqual(C.creditNote(r), '');
+});
+
+test('Mark paid then Mark unpaid (toggle, Log form, or Mark all paid) restores exactly the balance and part payments from before', () => {
+  const snap = st => JSON.stringify([C.balances(st).map(b => [b.client.id, b.owed, b.partPaid, b.unpaidBilled]), st.sessions.map(s => [s.id, s.paid, s.partPaid || 0]), st.clients.map(c => C.invoice(st, c.id, '2026-10-11').total)]);
+  let trips = 0, withPart = 0;
+  for (let k = 0; k < ROUNDS; k++) {
+    const seed = BASE_SEED + 50000 + k, r = rng(seed); let st = randomState(r);
+    for (const c of st.clients) { const o = owedC(st, c.id); if (o > 1) C.applyPayment(st, c.id, C.planPayment(st, c.id, (Math.max(1, Math.floor(r() * o)) / 100).toFixed(2)), '2026-10-11'); }
+    checkInvariants(st, 'seed ' + seed + ' start');
+    const open = st.sessions.filter(s => !s.paid && !s.volunteer);
+    if (!open.length) continue;
+    const pick = open[Math.floor(r() * open.length)], before = snap(st), how = Math.floor(r() * 3), where = 'seed ' + seed + ' via ' + ['toggle', 'Log form', 'Mark all paid'][how];
+    if (Number(pick.partPaid) > 0) withPart++;
+    if (how === 0) C.setPaid(st, pick.id, true);
+    else if (how === 1) C.editSession(st, pick.id, { minutes: pick.minutes, rate: pick.rate, paid: true, volunteer: false });
+    else st.sessions.forEach(s => { if (s.clientId === pick.clientId && !s.volunteer && !s.paid) C.setPaid(st, s.id, true); });   // js/app.js markPaidAll
+    checkInvariants(st, where + ' (paid)');
+    if (r() < 0.5) { st = C.importState(JSON.stringify(st)); checkBackup(st, where + ' (paid, backup)'); }   // a held part payment survives a backup
+    const back = how === 2 ? st.sessions.filter(s => open.some(o => o.id === s.id) && s.clientId === pick.clientId) : [st.sessions.find(s => s.id === pick.id)];
+    for (const s of back) { if (how === 1) C.editSession(st, s.id, { minutes: s.minutes, rate: s.rate, paid: false, volunteer: false }); else C.setPaid(st, s.id, false); }
+    checkInvariants(st, where + ' (unpaid again)');
+    assert.strictEqual(snap(st), before, where + ': the round trip changed money');
+    trips++;
+  }
+  assert.ok(trips > ROUNDS / 2 && withPart > ROUNDS / 10, 'too few round trips exercised: ' + trips + ' / ' + withPart);
+  // worked example (the demo data): Ethan owes $90 for two sessions, $10 is recorded, the oldest is marked paid and then unpaid
+  const st = C.emptyState(); st.clients.push({ id: 'e', name: 'Ethan', rate: 45 });
+  st.sessions.push({ id: 'x', clientId: 'e', date: '2026-10-01', minutes: 60, rate: null, paid: false, volunteer: false }, { id: 'y', clientId: 'e', date: '2026-10-08', minutes: 60, rate: null, paid: false, volunteer: false });
+  C.applyPayment(st, 'e', C.planPayment(st, 'e', 10), '2026-10-09');
+  C.setPaid(st, 'x', true); assert.strictEqual(C.balances(st)[0].owed, 45); assert.strictEqual(st.sessions[0].heldPaid, 10); assert.strictEqual(st.sessions[0].partPaid, undefined);
+  C.setPaid(st, 'x', false); assert.strictEqual(C.balances(st)[0].owed, 80); assert.strictEqual(C.balances(st)[0].partPaid, 10); assert.strictEqual(st.sessions[0].heldPaid, undefined);
+  // the rate was cut to $5/hr while it was marked paid: the held $10 covers the $5 session again, so Mark unpaid keeps it paid and the other $5 pays off the next one
+  C.setPaid(st, 'x', true); st.clients[0].rate = 5; C.settleCovered(st); const r = C.setPaid(st, 'x', false);
+  assert.ok(st.sessions[0].paid && st.sessions[1].paid); assert.strictEqual(C.balances(st)[0].owed, 0); assert.deepStrictEqual(r, { settled: 2, moved: 5, leftover: 0 });
+  assert.strictEqual(C.creditNote(r), '$5.00 already paid now counts toward other unpaid sessions.');
+  // made volunteer while marked paid: the held $10 is not lost, it goes to the next unpaid session
+  const v = C.emptyState(); v.clients.push({ id: 'e', name: 'Ethan', rate: 45 });
+  v.sessions.push({ id: 'x', clientId: 'e', date: '2026-10-01', minutes: 60, rate: null, paid: false, volunteer: false }, { id: 'y', clientId: 'e', date: '2026-10-08', minutes: 60, rate: null, paid: false, volunteer: false });
+  C.applyPayment(v, 'e', C.planPayment(v, 'e', 10), '2026-10-09'); C.setPaid(v, 'x', true);
+  C.editSession(v, 'x', { volunteer: true, paid: false }); assert.strictEqual(v.sessions[1].partPaid, 10); assert.strictEqual(v.sessions[0].heldPaid, undefined);
 });
 
 test('deleting a student removes their sessions and recorded payments, and nobody else\'s', () => {

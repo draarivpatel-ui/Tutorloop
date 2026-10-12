@@ -662,9 +662,10 @@
       id: String(s.id), clientId: String(s.clientId), date: s.date, minutes: Number(s.minutes),
       rate: s.rate == null || s.rate === '' || isNaN(Number(s.rate)) ? null : Math.max(0, Number(s.rate)),
       topics: str(s.topics, 300), notes: str(s.notes, 2000), paid: !!s.paid, volunteer: !!s.volunteer,
-      partPaid: !s.paid && !s.volunteer && Number(s.partPaid) > 0 ? Math.min(cents(s.partPaid), 1e6) : 0
+      partPaid: !s.paid && !s.volunteer && Number(s.partPaid) > 0 ? Math.min(cents(s.partPaid), 1e6) : 0,
+      heldPaid: s.paid && !s.volunteer && Number(s.heldPaid) > 0 ? Math.min(cents(s.heldPaid), 1e6) : 0
     }));
-    sessions.forEach(s => { if (!s.partPaid) delete s.partPaid; });
+    sessions.forEach(s => { if (!s.partPaid) delete s.partPaid; if (!s.heldPaid) delete s.heldPaid; });
     const pids = new Set();
     const payments = (Array.isArray(data.payments) ? data.payments : []).filter(x => x && x.id && ids.has(String(x.clientId)) && isValidDate(x.date) &&
       Number(x.amount) > 0 && !pids.has(String(x.id)) && pids.add(String(x.id))).slice(0, 5000).map(x => ({ id: String(x.id), clientId: String(x.clientId), date: x.date, amount: Math.min(cents(x.amount), 1e6) }));
@@ -770,28 +771,48 @@
   }
 
   /**
-   * Save an edited session (the Log form). A session saved as paid keeps no part payment (paid in full
-   * covers it). Saved as volunteer, or cheaper than what was already paid toward it, the money already
-   * received moves to the family's other unpaid sessions instead of vanishing. Returns what moved.
+   * Save an edited session (the Log form). Saved as paid, a part payment is held (heldPaid) so that
+   * saving it unpaid again later brings back exactly what was still owed. Saved as volunteer, moved to
+   * another student, or cheaper than what was already paid toward it, the money already received moves
+   * to the family's other unpaid sessions instead of vanishing. Returns what moved.
    */
   function editSession(state, id, rec) {
     const s = state.sessions.find(x => x.id === id);
     if (!s) return { settled: 0, moved: 0, leftover: 0 };
-    const oldClient = s.clientId, prior = Number(s.partPaid) > 0 ? cents(s.partPaid) : 0;
+    const oldClient = s.clientId;
+    const prior = Number(s.partPaid) > 0 ? cents(s.partPaid) : s.paid && Number(s.heldPaid) > 0 ? cents(s.heldPaid) : 0;
     Object.assign(s, rec);
+    delete s.partPaid; delete s.heldPaid;
     let carry = { settled: 0, moved: 0, leftover: 0 };
-    if (s.paid) delete s.partPaid;
-    else if (prior && (s.volunteer || s.clientId !== oldClient)) { delete s.partPaid; carry = carryCredit(state, oldClient, prior); }
+    if (prior) {
+      if (s.volunteer || s.clientId !== oldClient) carry = carryCredit(state, oldClient, prior);
+      else if (s.paid) s.heldPaid = prior;
+      else s.partPaid = prior;
+    }
     const more = settleCovered(state);
     return { settled: carry.settled + more.settled, moved: cents(carry.moved + more.moved), leftover: cents(carry.leftover + more.leftover) };
   }
 
-  /** The Paid toggle. Marking paid drops the part payment (paid in full covers it). */
+  /**
+   * The Paid toggle. Mark paid covers the rest of the session, and any part payment recorded toward
+   * it is held (heldPaid) rather than dropped, so Mark unpaid restores exactly the balance it had
+   * before: the full price minus what the payments log already received for it. Returns what moved
+   * (only when a rate cut since means the held money now covers the session again).
+   */
   function setPaid(state, id, paid) {
+    const none = { settled: 0, moved: 0, leftover: 0 };
     const s = state.sessions.find(x => x.id === id);
-    if (!s || s.volunteer) return;
-    s.paid = !!paid;
-    if (s.paid) delete s.partPaid;
+    if (!s || s.volunteer || !!s.paid === !!paid) return none;
+    if (paid) {
+      s.paid = true;
+      if (Number(s.partPaid) > 0) s.heldPaid = cents(s.partPaid);
+      delete s.partPaid;
+      return none;
+    }
+    s.paid = false;
+    if (Number(s.heldPaid) > 0) s.partPaid = cents(s.heldPaid);
+    delete s.heldPaid;
+    return settleCovered(state);
   }
 
   /** Delete a session. A part payment on it moves to the family's other unpaid sessions. */
