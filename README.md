@@ -17,7 +17,7 @@ Built by Aariv Patel for the [Next Founders Hackathon](https://next-founders.dev
 1. Open https://aariv.me/Tutorloop/ and click **Try it with sample data** (Maya, Ethan and Sofia are made up).
 2. **Dashboard → Who owes you** shows each family's balance; open **Invoices**, pick a student, **Record a payment** of part of the balance, then **Print / Save PDF**.
 3. **Parent updates** turns a session's notes into an editable message; **Service hours** prints a sponsor log with a signature line.
-4. Tests (re-run Oct 12, 2026): `npm test` (65 unit + 11 money property tests + service-worker check), `npm i && npm run test:dom` (66), `python3 tests/e2e.py` (204), `python3 tests/print_test.py` (32), `python3 tests/tz_test.py` (50). GitHub Actions runs all five, plus the `tests/pitch_docs_test.py` docs check, on every push (`.github/workflows/test.yml`).
+4. Tests (re-run Oct 12, 2026): `npm test` (65 unit + 11 money property tests + service-worker check), `npm i && npm run test:dom` (66), `python3 tests/e2e.py` (204), `python3 tests/print_test.py` (32), `python3 tests/tz_test.py` (50). GitHub Actions runs all five, plus the `tests/pitch_docs_test.py` docs check and the `tests/axe_baseline.py` WCAG 2.2 axe guard, on every push (`.github/workflows/test.yml`).
 
 ## The problem
 
@@ -128,6 +128,7 @@ python3 tests/e2e.py             # e2e (needs: pip install playwright && python 
 SHOTS=out python3 tests/e2e.py   # e2e + screenshots of every page (desktop, mobile, print)
 python3 tests/print_test.py      # print check: every printable page as a US Letter PDF (needs playwright; poppler-utils for page/text checks)
 python3 tests/pitch_docs_test.py # the demo script and pitch outline quote what the app really shows
+python3 tests/axe_baseline.py    # 20 checks: WCAG 2.2 AA + best-practice axe-core guard at 360/1280 px, incl. target-size (WCAG 2.5.8, off by default in axe): fails only on a serious/critical violation not in the Oct 12, 2026 audit baseline
 ```
 
 ## Deploy (GitHub Pages)

@@ -14,6 +14,7 @@ jobs:
         with: { python-version: '3.12' }
       - run: pip install playwright==1.63.0 && python -m playwright install --with-deps chromium
       - run: python tests/e2e.py   # real-browser e2e, offline, axe, mobile layout
+      - run: python tests/axe_baseline.py   # axe-core WCAG 2.2 AA (incl. target-size) at 360/1280: no NEW serious/critical vs the Oct 12 audit baseline
       - run: sudo apt-get install -y poppler-utils   # pdfinfo/pdftotext for the print check
       - run: python tests/print_test.py   # every printable page as a Letter PDF: page count, no app chrome, totals
       - run: python tests/tz_test.py   # local calendar day at 11:30 PM in 7 time zones, DST and month/year ends
