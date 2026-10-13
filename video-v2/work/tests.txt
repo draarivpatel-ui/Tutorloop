@@ -1,0 +1,15 @@
+$ npm test
+✓ duplicate student names are refused (case and spacing ignored); editing a student keeps its own name
+✓ backup import with duplicate student names keeps both, warns plainly, and labels them apart
+
+65 passed, 0 failed
+...
+
+11 passed, 0 failed  (seed 20261011, 400 rounds; system TZ)
+✓ service worker: shell files exist, old tutorloop caches pruned, others untouched
+
+$ npm run test:dom
+✓ invoice for a student with no sessions says nothing to bill and links to Log a session
+✓ no uncaught errors
+
+66 DOM checks passed

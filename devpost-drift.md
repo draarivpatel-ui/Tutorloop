@@ -22,3 +22,4 @@ Mismatches on the frozen page:
 1. Test counts 47 unit / 30 DOM / 92 e2e: now 65 unit (+ service-worker check) / 55 DOM / 174 e2e / 32 print (understates).
 2. "Club alone is a ~$1.7M/year ceiling": the app's Why page says ≈ $1.6 million, because it multiplies 17,000 by what TutorLoop keeps after Stripe fees ($95.14), while Devpost rounds the gross (17,000 × $99 = $1.68M). Both are true; just different bases.
 3. The page doesn't mention part payments, the duplicate-name rule or the backup duplicate-name warning (the app does more than the text says).
+- Re-run Oct 12 2:05 AM CDT: npm test 65 passed, test:dom 66 passed; devpost.md counts synced locally (e2e count unchanged, run before quoting). Devpost page untouched.

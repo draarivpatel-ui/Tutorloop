@@ -1,0 +1,127 @@
+{
+ "a1": {
+  "text": "TutorLoop is the back office for student tutors. It was built by Aariv Patel, a high schooler near Houston.",
+  "dur": 6.082,
+  "caption": "TutorLoop is the back office for student tutors. It was built by Aariv Patel, a high schooler near Houston."
+ },
+ "a2": {
+  "text": "Lots of students tutor younger kids, and they run it out of a notes app and a Venmo feed. Three things break.",
+  "dur": 5.902,
+  "caption": "Lots of students tutor younger kids, and they run it out of a notes app and a Venmo feed. Three things break."
+ },
+ "a3": {
+  "text": "Money: after a few weeks, nobody remembers who paid. Parents: families want to know if tutoring is working. And proof: volunteer tutoring counts toward NHS service hours, which need a log a sponsor can sign.",
+  "dur": 12.097,
+  "caption": "Money: after a few weeks, nobody remembers who paid. Parents: families want to know if tutoring is working. And proof: volunteer tutoring counts toward NHS service hours, which need a log a sponsor can sign."
+ },
+ "a4": {
+  "text": "Tutoring software exists, but it's built for companies with staff and budgets, not a 16 year old with three students. That's the gap.",
+  "dur": 7.431,
+  "caption": "Tutoring software exists, but it's built for companies with staff and budgets, not a sixteen-year-old with three students. That's the gap."
+ },
+ "a5": {
+  "text": "Here's the live app, brand new. Type one student, the minutes, what you covered, and how it went.",
+  "dur": 5.167,
+  "caption": "Here's the live app, brand new. Type one student, the minutes, what you covered, and how it went."
+ },
+ "a6": {
+  "text": "Save, and TutorLoop has already drafted the parent update and the invoice. That's the whole idea in about thirty seconds.",
+  "dur": 6.519,
+  "caption": "Save, and TutorLoop has already drafted the parent update and the invoice. That's the whole idea in about thirty seconds."
+ },
+ "b1": {
+  "text": "Now load sample data to show a busy month. A bar at the top says the students are made up.",
+  "dur": 5.137,
+  "caption": "Now load sample data to show a busy month. A bar at the top says the students are made up."
+ },
+ "b2": {
+  "text": "One glance shows this month's earnings, 115 dollars still unpaid, and 2.25 of 10 service hours.",
+  "dur": 6.846,
+  "caption": "One glance shows this month's earnings, $115 still unpaid, and 2.25 of 10 service hours."
+ },
+ "b3": {
+  "text": "Ethan's family owes 90 dollars. Remind writes a polite, itemized email with both session dates.",
+  "dur": 5.717,
+  "caption": "Ethan's family owes $90. Remind writes a polite, itemized email with both session dates."
+ },
+ "b4": {
+  "text": "Logging a session takes about ten seconds: student, minutes, topics, a quick note. It previews the amount as you type.",
+  "dur": 6.622,
+  "caption": "Logging a session takes about ten seconds: student, minutes, topics, a quick note. It previews the amount as you type."
+ },
+ "b5": {
+  "text": "Save, and any action can be undone.",
+  "dur": 1.927,
+  "caption": "Save, and any action can be undone."
+ },
+ "c1": {
+  "text": "Parent updates are the part families notice. TutorLoop reads the tutor's own session notes and writes the update: topics, the trend, the latest win, what's next, and the balance.",
+  "dur": 10.235,
+  "caption": "Parent updates are the part families notice. TutorLoop reads the tutor's own session notes and writes the update: topics, the trend, the latest win, what's next, and the balance."
+ },
+ "c2": {
+  "text": "Edit it, then one click opens it in your email.",
+  "dur": 2.345,
+  "caption": "Edit it, then one click opens it in your email."
+ },
+ "c3": {
+  "text": "Unpaid sessions roll into an invoice. At month's end there's one statement per family, or one recap for a sponsor.",
+  "dur": 6.426,
+  "caption": "Unpaid sessions roll into an invoice. At month's end there's one statement per family, or one recap for a sponsor."
+ },
+ "c4": {
+  "text": "Volunteer sessions count toward a goal and export as a CSV or a printable log with a signature line for the NHS sponsor.",
+  "dur": 7.509,
+  "caption": "Volunteer sessions count toward a goal and export as a CSV or a printable log with a signature line for the NHS sponsor."
+ },
+ "c5": {
+  "text": "Free covers three students and the whole product. At the limit, TutorLoop shows the plans and prices Pro in the tutor's own terms: about nine minutes of tutoring a month. Checkout is a demo; no money moves.",
+  "dur": 11.494,
+  "caption": "Free covers three students and the whole product. At the limit, TutorLoop shows the plans and prices Pro in the tutor's own terms: about nine minutes of tutoring a month. Checkout is a demo; no money moves."
+ },
+ "d1": {
+  "text": "Under the hood it's plain HTML, CSS, and JavaScript. No framework, no server, no paid APIs.",
+  "dur": 6.566,
+  "caption": "Under the hood it's plain HTML, CSS, and JavaScript. No framework, no server, no paid APIs."
+ },
+ "d2": {
+  "text": "core dot J S is pure business logic: money in cents, balances, invoices, summaries, and the report engine. It never touches the page, so it runs in Node with unit tests.",
+  "dur": 11.124,
+  "caption": "core.js is pure business logic: money in cents, balances, invoices, summaries, and the report engine. It never touches the page, so it runs in Node with unit tests."
+ },
+ "d3": {
+  "text": "Today's run: 65 unit tests, 11 money property tests, and 66 DOM checks, all passing. A strict content security policy blocks inline scripts, and a service worker makes it work offline.",
+  "dur": 12.953,
+  "caption": "Today's run: 65 unit tests, 11 money property tests, and 66 DOM checks, all passing. A strict content security policy blocks inline scripts, and a service worker makes it work offline."
+ },
+ "d4": {
+  "text": "Parent updates come from an on-device engine. It costs nothing per report, and notes about kids never leave the device.",
+  "dur": 6.322,
+  "caption": "Parent updates come from an on-device engine. It costs nothing per report, and notes about kids never leave the device."
+ },
+ "d5": {
+  "text": "Scaling is cheap by design. Static files on a CDN cost the same for ten tutors or a hundred thousand, and a test runs five thousand sessions under a strict time budget. For Pro sync, the data maps onto Postgres tables with row-level security.",
+  "dur": 14.756,
+  "caption": "Scaling is cheap by design. Static files on a CDN cost the same for ten tutors or a hundred thousand, and a test runs five thousand sessions under a strict time budget. For Pro sync, the data maps onto Postgres tables with row-level security."
+ },
+ "e1": {
+  "text": "The business model is freemium: free for three students, Pro at 4 dollars a month, and Club at 99 dollars a school year, so one N H S sponsor brings a whole chapter.",
+  "dur": 9.508,
+  "caption": "The business model is freemium: free for three students, Pro at $4 a month, and Club at $99 a school year, so one NHS sponsor brings a whole chapter."
+ },
+ "e2": {
+  "text": "N H S has more than 16 thousand chapters. If every one paid for Club, that's a ceiling of about 1.5 million dollars a year. It's a ceiling, not a forecast.",
+  "dur": 9.892,
+  "caption": "NHS has more than 16,000 chapters. If every one paid for Club, that's a ceiling of about $1.5 million a year. It's a ceiling, not a forecast."
+ },
+ "e3": {
+  "text": "Today there are no users or revenue yet. Next is a pilot with student tutors and one N H S sponsor.",
+  "dur": 6.128,
+  "caption": "Today there are no users or revenue yet. Next is a pilot with student tutors and one NHS sponsor."
+ },
+ "e4": {
+  "text": "That's TutorLoop. It's free at aariv dot me slash tutor loop. Thanks for watching.",
+  "dur": 4.308,
+  "caption": "That's TutorLoop. It's free at aariv.me/Tutorloop. Thanks for watching."
+ }
+}

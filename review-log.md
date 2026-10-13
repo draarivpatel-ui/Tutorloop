@@ -56,3 +56,8 @@ Left as is (design call from Cycle r3): marking a part-paid session paid and the
 - **Final regression sweep, live (aariv.me/Tutorloop, 390 + 1280 px, empty + sample data, all 9 pages):** 42/42 (page heading, no horizontal overflow, axe 0 serious/critical, 0 console errors, live Paid/Unpaid round trip shows "$10.00 of $90.00 paid"). devpost_claims --live 55/55, pitch_docs --live 28/28.
 Tests: unit 65 + money property 11 + sw, DOM 66, e2e 204, print 32, tz 50, pitch_docs 28, devpost_claims 57 local / 55 live. CI green (run 38198229517); live bytes match.
 **TutorLoop is frozen until judging, except critical bugs.**
+
+## Cycle 9 · Mon Oct 12 2026 ~12:35–1:00 PM EDT: strict-judge source re-check
+Re-fetched every cited source. Match: TutorBird $16.95 + $4.95; Teachworks Starter $16.49 + $0.320/lesson (both trials 30/21 days); Stripe 2.9% + 30¢, Billing PAYG 0.7%; Cloudflare Workers Paid $5/mo min, 10M requests, D1 included; Emergen $13.5B → $27.0B, 7.5%; NHS About 1.4M students, 1,000 hours/chapter, four pillars. Mismatch: NHS's History page (the source behind Wikipedia's "17,000+") says "more than 16,000 active chapters".
+- **3cfbdac (sw v29).** Pitch page uses 16,000+ chapters cited to NHS History; ceiling 16,000 × $95.14 ≈ $1.5M; "checked" dates Oct 12. pitch-outline, demo-script, e2e/pitch_docs/devpost_claims checks synced (counts unchanged). Local devpost.md: stale e2e/unit counts and NHS figure fixed (not pushed; file is excluded).
+Tests: unit 65 + 11 + sw, DOM 66, e2e 204, print 32, tz 50, pitch_docs 28, devpost_claims 57. CI green. Known drift on the frozen Devpost page: 17,000+ / ~$1.7M ceiling, 47/30/92 test counts.

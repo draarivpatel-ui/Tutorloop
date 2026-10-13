@@ -1,0 +1,210 @@
+1
+00:00:00,396 --> 00:00:04,857
+TutorLoop is the back office for student
+tutors. It was built by Aariv Patel,
+
+2
+00:00:04,877 --> 00:00:06,458
+a high schooler near Houston.
+
+3
+00:00:08,624 --> 00:00:13,701
+Lots of students tutor younger kids, and they run it
+out of a notes app and a Venmo feed.
+
+4
+00:00:13,721 --> 00:00:14,506
+Three things break.
+
+5
+00:00:14,881 --> 00:00:21,082
+Money: after a few weeks, nobody remembers who paid.
+Parents: families want to know if tutoring is working.
+
+6
+00:00:21,102 --> 00:00:26,958
+And proof: volunteer tutoring counts toward NHS service hours,
+which need a log a sponsor can sign.
+
+7
+00:00:27,332 --> 00:00:31,558
+Tutoring software exists, but it's built
+for companies with staff and budgets,
+
+8
+00:00:31,578 --> 00:00:34,743
+not a sixteen-year-old with three students. That's the gap.
+
+9
+00:00:35,736 --> 00:00:38,874
+Here's the live app, brand new. Type one student, the minutes,
+
+10
+00:00:38,894 --> 00:00:40,883
+what you covered, and how it went.
+
+11
+00:00:44,349 --> 00:00:48,240
+Save, and TutorLoop has already drafted
+the parent update and the invoice.
+
+12
+00:00:48,260 --> 00:00:50,848
+That's the whole idea in about thirty seconds.
+
+13
+00:00:52,315 --> 00:00:57,432
+Now load sample data to show a busy month. A
+bar at the top says the students are made up.
+
+14
+00:00:57,804 --> 00:01:04,630
+One glance shows this month's earnings, $115 still
+unpaid, and 2.25 of 10 service hours.
+
+15
+00:01:05,001 --> 00:01:10,698
+Ethan's family owes $90. Remind writes a
+polite, itemized email with both session dates.
+
+16
+00:01:14,334 --> 00:01:18,618
+Logging a session takes about ten seconds:
+student, minutes, topics, a quick note.
+
+17
+00:01:18,638 --> 00:01:20,936
+It previews the amount as you type.
+
+18
+00:01:23,181 --> 00:01:25,088
+Save, and any action can be undone.
+
+19
+00:01:26,784 --> 00:01:33,116
+Parent updates are the part families notice. TutorLoop reads
+the tutor's own session notes and writes the update:
+
+20
+00:01:33,136 --> 00:01:36,999
+topics, the trend, the latest win, what's next, and the balance.
+
+21
+00:01:37,370 --> 00:01:39,695
+Edit it, then one click opens it in your email.
+
+22
+00:01:41,837 --> 00:01:46,315
+Unpaid sessions roll into an invoice. At
+month's end there's one statement per family,
+
+23
+00:01:46,335 --> 00:01:48,243
+or one recap for a sponsor.
+
+24
+00:01:50,367 --> 00:01:57,856
+Volunteer sessions count toward a goal and export as a CSV or
+a printable log with a signature line for the NHS sponsor.
+
+25
+00:01:59,983 --> 00:02:03,380
+Free covers three students and the whole product. At the limit,
+
+26
+00:02:03,400 --> 00:02:07,108
+TutorLoop shows the plans and prices
+Pro in the tutor's own terms:
+
+27
+00:02:07,128 --> 00:02:10,525
+about nine minutes of tutoring a month. Checkout is a demo;
+
+28
+00:02:10,545 --> 00:02:11,457
+no money moves.
+
+29
+00:02:12,914 --> 00:02:17,408
+Under the hood it's plain HTML, CSS, and JavaScript. No framework,
+
+30
+00:02:17,428 --> 00:02:19,460
+no server, no paid APIs.
+
+31
+00:02:24,154 --> 00:02:28,504
+core.js is pure business logic: money in cents, balances, invoices, summaries,
+
+32
+00:02:28,524 --> 00:02:35,258
+and the report engine. It never touches the page,
+so it runs in Node with unit tests.
+
+33
+00:02:45,783 --> 00:02:51,195
+Today's run: 65 unit tests, 11 money
+property tests, and 66 DOM checks,
+
+34
+00:02:51,215 --> 00:02:58,716
+all passing. A strict content security policy blocks inline
+scripts, and a service worker makes it work offline.
+
+35
+00:03:03,065 --> 00:03:06,838
+Parent updates come from an on-device
+engine. It costs nothing per report,
+
+36
+00:03:06,858 --> 00:03:09,367
+and notes about kids never leave the device.
+
+37
+00:03:14,385 --> 00:03:21,072
+Scaling is cheap by design. Static files on a CDN
+cost the same for ten tutors or a hundred thousand,
+
+38
+00:03:21,092 --> 00:03:25,097
+and a test runs five thousand
+sessions under a strict time budget.
+
+39
+00:03:25,117 --> 00:03:29,121
+For Pro sync, the data maps
+onto Postgres tables with row-level security.
+
+40
+00:03:30,578 --> 00:03:35,148
+The business model is freemium: free for
+three students, Pro at $4 a month,
+
+41
+00:03:35,168 --> 00:03:40,066
+and Club at $99 a school year, so
+one NHS sponsor brings a whole chapter.
+
+42
+00:03:40,436 --> 00:03:44,812
+NHS has more than 16,000 chapters.
+If every one paid for Club,
+
+43
+00:03:44,832 --> 00:03:49,209
+that's a ceiling of about $1.5
+million a year. It's a ceiling,
+
+44
+00:03:49,229 --> 00:03:50,308
+not a forecast.
+
+45
+00:03:50,679 --> 00:03:56,787
+Today there are no users or revenue yet. Next is
+a pilot with student tutors and one NHS sponsor.
+
+46
+00:03:57,847 --> 00:04:02,135
+That's TutorLoop. It's free at aariv.me/Tutorloop. Thanks for watching.
+
