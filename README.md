@@ -158,6 +158,19 @@ This project was built with help from an AI assistant (Hark), which drafted code
 4. Club sponsor dashboard with verified service hours
 5. Optional LLM polish for parent updates
 
+## Third-party licences
+
+The app ships no third-party code and calls no outside APIs. What it does use from others, with licence and source (checked Oct 13, 2026):
+
+| What | How TutorLoop uses it | Licence | Source |
+|---|---|---|---|
+| IBM Plex Sans 400/600/700 and IBM Plex Mono 500 (latin subsets) | self-hosted in `fonts/` | SIL Open Font License 1.1, © 2017 IBM Corp., Reserved Font Name "Plex"; full text in `fonts/OFL.txt` | https://github.com/IBM/plex |
+| jsdom | dev dependency for the DOM smoke test, never shipped | MIT | https://github.com/jsdom/jsdom |
+| axe-core | dev dependency for the accessibility checks, never shipped | MPL-2.0 | https://github.com/dequelabs/axe-core |
+| Playwright | end-to-end tests in CI, never shipped | Apache-2.0 | https://github.com/microsoft/playwright-python |
+
+Competitor prices on the pitch page are facts quoted with a link to each vendor's own page (see **Data sources**); no vendor text or images are copied.
+
 ## License
 
 MIT © 2026 Aariv Patel
