@@ -598,5 +598,52 @@ test('backup import with duplicate student names keeps both, warns plainly, and 
   assert.ok(C.validateClient({ id: 'e', name: 'maya chen', rate: 30 }, st).some(e => /already have/.test(e)), 'renaming a third student onto the twins is refused');
 });
 
+/* Back up / Restore validation + one-time storage.persist() (post-judging branch, drafted by Hark) */
+test('backup round trip: backupText -> parseBackupText gives the same state (sample, part payments, archived)', () => {
+  const st = demo();
+  const back = C.parseBackupText(C.backupText(st));
+  assert.deepStrictEqual(C.parseBackupText(C.backupText(back)), back, 'second round trip is stable');
+  const norm = C.importState(st);   // the app always holds normalised state (importState fills default fields)
+  assert.deepStrictEqual(back, norm, 'export then import is the identity on app state');
+  assert.deepStrictEqual(back.clients.map(c => c.id), st.clients.map(c => c.id)); assert.strictEqual(back.sessions.length, st.sessions.length);
+  assert.deepStrictEqual(back.payments, st.payments); assert.strictEqual(back.sample, true);
+  assert.deepStrictEqual(C.parseBackupText(C.backupText(C.emptyState())), C.emptyState());
+});
+test('backup import refuses malformed JSON and non-backups with a friendly message, never a crash', () => {
+  for (const t of ['', '{', 'nope', '{"clients": [', "{'clients':[]}", '\u0000']) assert.throws(() => C.parseBackupText(t), /not valid JSON/, JSON.stringify(t));
+  for (const t of [undefined, null, 5, {}]) assert.throws(() => C.parseBackupText(t), /not valid JSON/);
+  for (const t of ['null', '1', '"x"', '[]', '{}', '{"clients":[]}', '{"sessions":[]}', '{"clients":{},"sessions":[]}', '{"clients":[],"sessions":"x"}', '{"plan":{},"entries":[]}'])
+    assert.throws(() => C.parseBackupText(t), /not a TutorLoop backup/, t);
+  assert.throws(() => C.parseBackupText('{"version":2,"clients":[],"sessions":[]}'), /newer version/);
+});
+test('backup import refuses files over 5 MB before parsing (characters and UTF-8 bytes)', () => {
+  assert.throws(() => C.parseBackupText(JSON.stringify({ clients: [], sessions: [], pad: 'x'.repeat(C.MAX_BACKUP_BYTES) })), /too large/);
+  const wide = JSON.stringify({ clients: [], sessions: [], pad: '\u00e9'.repeat(Math.ceil(C.MAX_BACKUP_BYTES / 2) + 10) });
+  assert.ok(wide.length < C.MAX_BACKUP_BYTES);
+  assert.throws(() => C.parseBackupText(wide), /too large/);
+  const near = JSON.stringify({ clients: [], sessions: [], pad: 'x'.repeat(C.MAX_BACKUP_BYTES - 100) });
+  assert.strictEqual(C.parseBackupText(near).clients.length, 0, 'just under the limit still loads');
+});
+test('backup import cleans hand-edited rows (orphan, duplicate and impossible sessions dropped)', () => {
+  const t = JSON.stringify({ clients: [{ id: 'a', name: 'Maya', rate: '30' }, { id: 'a', name: 'Dup' }, { name: 'no id' }],
+    sessions: [{ id: 's1', clientId: 'a', date: '2026-10-01', minutes: 60 }, { id: 's1', clientId: 'a', date: '2026-10-02', minutes: 60 },
+      { id: 's2', clientId: 'zz', date: '2026-10-01', minutes: 60 }, { id: 's3', clientId: 'a', date: '2026-02-30', minutes: 60 }, { id: 's4', clientId: 'a', date: '2026-10-03', minutes: -5 }] });
+  const st = C.parseBackupText(t);
+  assert.deepStrictEqual(st.clients.map(c => c.name), ['Maya']); assert.strictEqual(st.clients[0].rate, 30);
+  assert.deepStrictEqual(st.sessions.map(s => s.id), ['s1']);
+});
+test('storage.persist() is asked once per browser profile; missing API or blocked storage never throw', () => {
+  const store = () => { const m = {}; return { getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, m }; };
+  let calls = 0; const nav = { storage: { persist: () => { calls++; return Promise.resolve(false); } } }; const ls = store();
+  assert.strictEqual(C.requestPersist(nav, ls, 'k'), true); assert.strictEqual(C.requestPersist(nav, ls, 'k'), false);
+  assert.strictEqual(calls, 1); assert.strictEqual(ls.m.k, '1');
+  const ls2 = store();
+  assert.strictEqual(C.requestPersist({}, ls2, 'k'), false); assert.strictEqual(C.requestPersist({ storage: {} }, ls2, 'k'), false);
+  assert.strictEqual(ls2.m.k, undefined);
+  assert.strictEqual(C.requestPersist({ storage: { persist: () => Promise.reject(new Error('no')) } }, ls2, 'k'), true);
+  const bad = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } };
+  assert.strictEqual(C.requestPersist({ storage: { persist: () => { throw new Error('x'); } } }, bad, 'k'), false);
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

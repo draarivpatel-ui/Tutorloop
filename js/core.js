@@ -675,6 +675,37 @@
     return out;
   }
 
+  /* ---------- backup file + storage persistence (post-judging; drafted by Hark) ---------- */
+
+  const MAX_BACKUP_BYTES = 5 * 1024 * 1024;   // 5,000 sessions is ~0.9 MB; localStorage itself holds about 5 MB
+
+  function byteLength(text) {
+    if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(text).length;
+    return unescape(encodeURIComponent(text)).length;
+  }
+
+  /** The text of a picked backup file -> a clean state. Refuses anything over 5 MB before parsing, then importState. */
+  function parseBackupText(text) {
+    if (typeof text !== 'string') throw new Error('That file is not valid JSON. Choose a TutorLoop backup (.json) file.');
+    if (text.length > MAX_BACKUP_BYTES || byteLength(text) > MAX_BACKUP_BYTES) throw new Error('That file is too large to be a TutorLoop backup.');
+    return importState(text);
+  }
+
+  /** The JSON "Download backup" saves. parseBackupText(backupText(s)) gives the same state back. */
+  function backupText(state) { return JSON.stringify(state, null, 2); }
+
+  /** Ask the browser once per profile to keep this site's storage (feature-detected, no UI, never throws). */
+  function requestPersist(nav, storage, flagKey) {
+    try {
+      if (!nav || !nav.storage || typeof nav.storage.persist !== 'function') return false;
+      if (storage.getItem(flagKey)) return false;
+      storage.setItem(flagKey, '1');
+      const p = nav.storage.persist();
+      if (p && typeof p.catch === 'function') p.catch(() => { /* refused */ });
+      return true;
+    } catch (e) { return false; }
+  }
+
   /* ---------- part payments ---------- */
 
   const MAX_PAYMENT = 100000;
@@ -874,7 +905,7 @@
     sessionAmount, sessionDue, planPayment, applyPayment, carryCredit, settleCovered, addSession, editSession, setPaid, deleteSession, deleteClient, creditNote, MAX_PAYMENT, clientById, validateClient, validateSession, duplicateNames, duplicateNamesWarning, clientLabel, stats, monthlySeries, balances, lastSession,
     serviceProgress, rangePreset, topicList, sentiment, sentence, progressReport, reminderMessage, invoice,
     APP_URL, PAY_METHODS, guessPayMethod, paymentText, paymentSentence, referralFooter,
-    csvEscape, volunteerCSV, sessionsCSV, importState, demoState, fmtDate, fmtMonth, monthKey,
+    csvEscape, volunteerCSV, sessionsCSV, importState, MAX_BACKUP_BYTES, parseBackupText, backupText, requestPersist, demoState, fmtDate, fmtMonth, monthKey,
     summaryMonths, monthSummary, summaryText, proValue
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

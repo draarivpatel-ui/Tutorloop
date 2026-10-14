@@ -25,7 +25,11 @@
   }
 
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); storageOk = true; return true; }
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state)); storageOk = true;
+      C.requestPersist(navigator, localStorage, 'tutorloop.persist-asked.v1');   // once per browser: ask to keep this storage (no UI)
+      return true;
+    }
     catch (e) {
       storageOk = false;
       showBanner('Your browser blocked saving (private mode or storage full). Changes will be lost when you close this tab. Download a backup from Settings.');
@@ -818,9 +822,9 @@
     if (t.id === 'r-client') generateReport();
     if (t.id === 'importFile' && t.files[0]) {
       const file = t.files[0]; t.value = '';
-      if (file.size > 5 * 1024 * 1024) { toast('That file is too large to be a TutorLoop backup.'); return; }
+      if (file.size > C.MAX_BACKUP_BYTES) { toast('That file is too large to be a TutorLoop backup.'); return; }
       file.text().then(txt => {
-        const next = C.importState(txt);
+        const next = C.parseBackupText(txt);
         // Same rule as the Add-student form: two students with one name get mixed up on invoices. A backup
         // can predate that rule, so nothing is dropped or renamed; the tutor is told plainly, before and after.
         const dupWarn = C.duplicateNamesWarning(next);
@@ -931,7 +935,7 @@
       case 'copySummary': copyText(document.getElementById('summaryText').value).then(ok => toast(ok ? 'Summary copied' : 'Copy failed. Use Print / Save PDF instead.')); break;
       case 'exportHours': download('service-hours-' + today() + '.csv', C.volunteerCSV(state), 'text/csv'); break;
       case 'exportSessions': download('tutorloop-sessions-' + today() + '.csv', C.sessionsCSV(state), 'text/csv'); break;
-      case 'exportJson': download('tutorloop-backup-' + today() + '.json', JSON.stringify(state, null, 2), 'application/json'); break;
+      case 'exportJson': download('tutorloop-backup-' + today() + '.json', C.backupText(state), 'application/json'); break;
       case 'importClick': document.getElementById('importFile').click(); break;
       case 'plan': commit('Switched to ' + el.dataset.plan.charAt(0).toUpperCase() + el.dataset.plan.slice(1) + ' (demo, no charge)', () => { state.profile.plan = el.dataset.plan; }); break;
       case 'reset': if (confirm('Erase all students and sessions in this browser? Download a backup first if you might need it.')) commit('All data erased', () => { state = C.emptyState(); }); break;
