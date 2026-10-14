@@ -151,6 +151,8 @@ Repo **Settings → Pages → Build and deployment → Source: Deploy from a bra
 
 This project was built with help from an AI assistant (Hark), which drafted code, tests and copy under Aariv Patel's direction. The app itself calls no AI service: parent updates come from the on-device, rule-based engine described above.
 
+The demo video on the Devpost page (rendered before submission on Oct 11, 2026) was also made with Hark: it has no voiceover, and Hark recorded the screen footage of the live app and drafted its on-screen captions, chapter cards and edit over a music bed. Its test card (47 passed) was true when it was rendered; the current counts are earlier in this README.
+
 ## Roadmap
 
 1. Cloud sync and login (Pro)
