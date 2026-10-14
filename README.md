@@ -27,7 +27,7 @@ Lots of high school and college students tutor younger kids in math, reading, or
 - Parents want to know whether tutoring is working, but writing **progress updates** by hand takes time, so most tutors never send them.
 - At the end of the semester, volunteer tutoring hours have to be **re-typed into a log** for a sponsor.
 
-Tutoring-company software (scheduling and billing suites) is built for businesses with staff. It's far more than a 16-year-old with four students needs or can pay for.
+Tutoring-company software (scheduling and billing suites) is built for businesses with staff. It's far more than a 16-year-old with three students needs or can pay for.
 
 ## Features
 
@@ -138,6 +138,7 @@ Repo **Settings → Pages → Build and deployment → Source: Deploy from a bra
 ## Known limits (honest)
 
 - Data lives in one browser. Use **Download backup** to move it to another device (there's no sync yet).
+- On iPhone, iPad and Mac Safari, WebKit's tracking prevention deletes a website's script-writable storage (including `localStorage` and the offline cache) after seven days of Safari use without the person interacting with the site ([WebKit blog, Mar 2020](https://webkit.org/blog/10218/full-third-party-cookie-blocking-and-more/)). WebKit says it does not expect this for web apps added to the Home Screen. TutorLoop does not work around this yet, so on Safari, add it to the Home Screen or download a backup regularly.
 - Payment is tracked, not processed. Reminders and updates open in your own email app.
 - Plan upgrades are simulated. "Cloud sync", "scheduled reminders", and the "Club sponsor dashboard" are roadmap items.
 - Mark paid then Mark unpaid gives a session back exactly what it still owed, part payment included. A session that **Record a payment** paid off completely counts as paid by those payments, so marking it unpaid by hand bills its full price again while the payment stays in the log; use **Undo** right after a mistaken payment instead.
