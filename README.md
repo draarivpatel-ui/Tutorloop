@@ -8,7 +8,7 @@ TutorLoop is a free web app for high school and college students who tutor. Log 
 
 *Screenshot of the live site (Oct 2026), taken with headless Chromium.*
 
-Built by Aariv Patel, a 9th-grade student at Dulles High School (Math and Science Academy) in Sugar Land, Texas, for the [Next Founders Hackathon](https://next-founders.devpost.com/) (October 2026).
+Built by Aariv Patel for the [Next Founders Hackathon](https://next-founders.devpost.com/) (October 2026).
 
 ---
 

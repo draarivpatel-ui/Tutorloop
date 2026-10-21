@@ -1,11 +1,7 @@
 1
-00:00:00,396 --> 00:00:04,857
+00:00:00,396 --> 00:00:06,458
 TutorLoop is the back office for student
-tutors. It was built by Aariv Patel,
-
-2
-00:00:04,877 --> 00:00:06,458
-a high schooler near Houston.
+tutors. It was built by Aariv Patel.
 
 3
 00:00:08,624 --> 00:00:13,701
