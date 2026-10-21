@@ -1,4 +1,4 @@
-# TutorLoop accessibility and performance audit (Mon Oct 12, 2026, ~9:55–10:30 PM EDT)
+# TutorLoop accessibility and performance audit (Mon Oct 12, 2026, ~9:55-10:30 PM EDT)
 
 Audit only. **No app code was changed**: TutorLoop is submitted to Next Founders and its behaviour is frozen. Fixes are queued in BACKLOG.md as "post-judging a11y fixes", NOT BEFORE the Next Founders winners announcement (Devpost: **Sat Oct 24, 2026, 9:00 AM EDT**, https://next-founders.devpost.com/details/dates).
 
@@ -19,8 +19,8 @@ Audit only. **No app code was changed**: TutorLoop is submitted to Next Founders
 |---|---|---|---|---|
 | T1 | **Serious** (manual) | 2.4.7 Focus Visible, AA | The nav link for the current page (`nav a.active`, `aria-current="page"`, e.g. "Dashboard") looks the same focused and unfocused. `styles.css` line 33, `nav a.active { box-shadow: inset 0 -2px 0 var(--brand) }`, is more specific than line 18, `:focus-visible { box-shadow: var(--focus) }`, so the focus ring never shows on that link. Verified by computed style and screenshot. Every other link shows the 2-tone ring. | `nav a.active:focus-visible { box-shadow: var(--focus), inset 0 -2px 0 var(--brand); }`, or give focus an `outline` so it can't be overridden by `box-shadow`. |
 | T2 | Moderate | 2.4.3 Focus Order; 2.4.1 Bypass Blocks | Below 720 px, `js/app.js` line 753 calls `act.scrollIntoView(...)` on the active nav link after each render. In Chromium this moves the sequential-focus starting point, so the **first Tab from a fresh load lands on "Log session"**. It skips the skip link, the TutorLoop brand and the current link. Verified at 360 px. Calling the same `scrollIntoView` at 1280 px reproduces it. Shift+Tab still reaches them. | Scroll the nav container itself (e.g. set `nav.scrollLeft` from the link's `offsetLeft`) instead of calling `element.scrollIntoView`. Then re-check that the first Tab hits "Skip to content". |
-| T3 | Moderate per axe; low real impact | 2.4.1 (axe `skip-link` heuristic) | At 360 px, axe flags nav links scrolled out of the horizontally scrolling `#nav` (1–6 per page) as "skip links whose target doesn't exist". They are hash-router links (`#dashboard`…), not skip links, and they work. | No functional fix needed. Optional: once T2 is fixed, re-run axe to confirm. |
-| T4 | Advisory | — | Plan badges on Settings & plans ("roadmap", "not on sale yet") are 11 px text at 360 px. | Optional: 12 px minimum. |
+| T3 | Moderate per axe; low real impact | 2.4.1 (axe `skip-link` heuristic) | At 360 px, axe flags nav links scrolled out of the horizontally scrolling `#nav` (1-6 per page) as "skip links whose target doesn't exist". They are hash-router links (`#dashboard`…), not skip links, and they work. | No functional fix needed. Optional: once T2 is fixed, re-run axe to confirm. |
+| T4 | Advisory | N/A | Plan badges on Settings & plans ("roadmap", "not on sale yet") are 11 px text at 360 px. | Optional: 12 px minimum. |
 
 No other issues found:
 - **axe:** 0 serious/critical in all 20 runs; 0 violations of any impact at 1280. The only `incomplete` is `label-content-name-mismatch` on the toast close button, which axe can't decide.

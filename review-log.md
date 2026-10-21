@@ -4,7 +4,7 @@ Baseline audit only: npm test 33/33, test:dom 19/19 pass. No changes shipped. Ne
 ## Cycle 2 · Sat Oct 10 2026 6:40 PM CT
 Re-verified npm test and test:dom pass (code-level only; no chromium). No changes shipped.
 
-## Cycle 3 · Sat Oct 10 2026 7:06–7:20 PM CT
+## Cycle 3 · Sat Oct 10 2026 7:06-7:20 PM CT
 Shipped (pushed to draarivpatel-ui/Tutorloop, live at https://aariv.me/Tutorloop/, verified in a browser):
 - **Payment wording fix** (core.js reminderMessage + progressReport): "You can pay by @aariv-tutoring." is now "You can pay with Venmo @aariv-tutoring." New Settings field "Payment app" (Venmo/Zelle/PayPal/Cash App suggestions or free text). Blank = guessed from the handle (@x → Venmo, $x → Cash App, email/phone → Zelle); a handle that already names an app isn't double-labelled; free text with no app reads "Payment: …". Invoice says "Pay with: Venmo @…". Live preview of the sentence in Settings. Old backups import fine.
 - **"Sent with TutorLoop" footer**: opt-in checkbox in Settings, off by default (also off in demo data). Adds "--" + one plain line with https://aariv.me/Tutorloop/ to parent updates, reminders, and the invoice. No tracking or referral code; the Settings help text says so.
@@ -12,7 +12,7 @@ Shipped (pushed to draarivpatel-ui/Tutorloop, live at https://aariv.me/Tutorloop
 - sw.js cache bumped to v4. devpost.md, pitch-outline.md, README.md, demo-script.md updated (footer no longer "planned"; test counts).
 Tests: unit 41/41 (+8), jsdom 19/19, e2e 71/71 (+7 new checks; was 64). Noted, not changed: the "Sample data loaded" undo toast stays visible after loading demo data (pre-existing behaviour).
 
-## Cycle 4 · Sat Oct 10 2026 7:25–8:10 PM CT
+## Cycle 4 · Sat Oct 10 2026 7:25-8:10 PM CT
 Strict-judge review (Next Founders, 4 × 25%). Gaps found: first run needed 3 pages before a tutor saw value (Innovation & UX); no month-end artifact for parents or NHS sponsors (UX + Business); plans were static cards, not tied to the tutor's own numbers (Business & Finance); the Undo toast lingered (Technical).
 Shipped (pushed to draarivpatel-ui/Tutorloop, sw.js cache v6):
 - **Toast bug fixed:** "Sample data loaded" (and every) toast now auto-dismisses (8s with Undo, 3s plain), pauses while hovered/focused, has a × close button, closes on Escape, and is fully removed afterwards (hidden + emptied). Before, it only faded to opacity 0, leaving an invisible, focusable Undo button and text in the page. Ctrl/Cmd+Z still undoes after it's gone.
@@ -23,7 +23,7 @@ Shipped (pushed to draarivpatel-ui/Tutorloop, sw.js cache v6):
 Tests: unit 47/47 (+6), jsdom 30/30 (+11), e2e 92/92 (+21). Docs: devpost.md, README.md, demo-script.md (new shot 3 quick start, shot 7 summary, shot 9 usage), pitch-outline.md test counts.
 Note: another process updated devpost.md/demo-script.md test counts (to 47/30) mid-cycle at ~7:36 PM CT despite the lock; reconciled.
 
-## Cycle 5 · Sun Oct 11 2026 11:45 AM–12:20 PM CT
+## Cycle 5 · Sun Oct 11 2026 11:45 AM-12:20 PM CT
 Strict-judge + real-user pass at 390 and 1280 px (EN, sample data and a 5,000-session stress dataset). Entry is already submitted, so changes are additive and none touch a flow shown in the video.
 Shipped (sw.js cache v7):
 - **Rounding bug:** exact half-cent amounts rounded down (5.02/hr x 15 min showed $1.25, not $1.26; about 3% of cent-precision rates). cents() now rounds on a 12-digit value. Found by comparing sessionAmount to integer math over 85,000 rate/minute pairs; 2,513 differed before, 0 after.
@@ -33,7 +33,7 @@ Shipped (sw.js cache v7):
 Tests: unit 50/50 (+3), jsdom 30/30, e2e 96/96 (+4 scale checks: 5,000 sessions / 50 students re-render in ~0.2 s, separators, email links under 8,200 chars, 0 page errors).
 Not done / ideas: partial payments (credit toward next session); recurring weekly schedule.
 
-## Cycle 6 · Sun Oct 11 2026 12:00–12:40 PM CT
+## Cycle 6 · Sun Oct 11 2026 12:00-12:40 PM CT
 Backlog item: partial payments. The entry is already submitted, so this is additive and touches no flow shown in the video.
 Gap (Business & Finance, UX): a parent who pays $40 of a $75 balance left the tutor two bad choices, mark a $25 session paid and lose track of the rest, or leave everything unpaid.
 Shipped (sw.js cache v9):
@@ -42,7 +42,7 @@ Shipped (sw.js cache v9):
 - Backups and undo keep part payments and the payment log; bad rows (unknown student, bad date, negative amount, volunteer sessions) are dropped on import.
 Tests: unit 51 -> 58 (cent precision with 33.33/hr and four small payments, oldest-first by date, refusal cases, purity, import/backup, CSV), DOM 30 -> 38, Chromium e2e 106 -> 112 (typing into the real field, negative refused, exact balance drop, focus returns, undo). Visual check at 390 and 1280 px in Chromium: form, button and part-paid note fit, no overflow.
 
-## Cycle 7 · Sun Oct 11 2026 10:25–11:10 PM EDT (team-a r6)
+## Cycle 7 · Sun Oct 11 2026 10:25-11:10 PM EDT (team-a r6)
 Re-read the Next Founders overview and rules (read-only, https://next-founders.devpost.com/ and /rules): 4 x 25% (Technical Execution, Innovation & UX, Business & Finance: "realistic business model, revenue streams, and a clear path to financial sustainability", Communication); the 5-minute video must cover problem, build, demo, scalability.
 Shipped (3 atomic commits, CI green on each):
 - **b746dcb, money correctness (sw v24).** New tests/money.property.test.js (seeded random histories and operation sequences; exact integer-cents reference; one balance everywhere; months add up; CSV/JSON round trips; every day 2024-2027) and tests/tz_test.py (50 Chromium checks: local calendar day at 11:30 PM in 7 zones, DST, month and year ends). Bug found and fixed: editing a part-paid session below what was already paid (or lowering the student's rate) left it "unpaid" owing $0 and showed e.g. "$783.13 of $78.00 paid"; making it volunteer or deleting it silently dropped money already received. Now the session is settled and the extra counts toward the family's oldest unpaid sessions, and the toast says so (or that it exceeds anything owed). Old backups are settled the same way on restore.
@@ -57,7 +57,7 @@ Left as is (design call from Cycle r3): marking a part-paid session paid and the
 Tests: unit 65 + money property 11 + sw, DOM 66, e2e 204, print 32, tz 50, pitch_docs 28, devpost_claims 57 local / 55 live. CI green (run 38198229517); live bytes match.
 **TutorLoop is frozen until judging, except critical bugs.**
 
-## Cycle 9 · Mon Oct 12 2026 ~12:35–1:00 PM EDT: strict-judge source re-check
+## Cycle 9 · Mon Oct 12 2026 ~12:35-1:00 PM EDT: strict-judge source re-check
 Re-fetched every cited source. Match: TutorBird $16.95 + $4.95; Teachworks Starter $16.49 + $0.320/lesson (both trials 30/21 days); Stripe 2.9% + 30¢, Billing PAYG 0.7%; Cloudflare Workers Paid $5/mo min, 10M requests, D1 included; Emergen $13.5B → $27.0B, 7.5%; NHS About 1.4M students, 1,000 hours/chapter, four pillars. Mismatch: NHS's History page (the source behind Wikipedia's "17,000+") says "more than 16,000 active chapters".
 - **3cfbdac (sw v29).** Pitch page uses 16,000+ chapters cited to NHS History; ceiling 16,000 × $95.14 ≈ $1.5M; "checked" dates Oct 12. pitch-outline, demo-script, e2e/pitch_docs/devpost_claims checks synced (counts unchanged). Local devpost.md: stale e2e/unit counts and NHS figure fixed (not pushed; file is excluded).
 Tests: unit 65 + 11 + sw, DOM 66, e2e 204, print 32, tz 50, pitch_docs 28, devpost_claims 57. CI green. Known drift on the frozen Devpost page: 17,000+ / ~$1.7M ceiling, 47/30/92 test counts.

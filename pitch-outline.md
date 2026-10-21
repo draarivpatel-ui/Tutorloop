@@ -17,7 +17,7 @@ Students who tutor run a real small business, but they do it with tools built fo
 
 **Why existing tools miss them:** tutoring and scheduling software is built for tutoring companies with staff, payroll, and a budget. It's too complex and too expensive for a 16-year-old with three students. Generic tools (spreadsheets, notes, Venmo) each cover one job and don't talk to each other.
 
-*Evidence status:* the problem comes from what Aariv sees among students at his school. There are no formal interviews or survey data yet. Add 3–5 real tutor quotes here if you collect them; don't invent any.
+*Evidence status:* the problem comes from what Aariv sees among students at his school. There are no formal interviews or survey data yet. Add 3-5 real tutor quotes here if you collect them; don't invent any.
 
 ## 2. Solution
 One free web app that handles all four jobs: logging sessions, getting paid, updating parents, and proving service hours.
@@ -34,14 +34,14 @@ One free web app that handles all four jobs: logging sessions, getting paid, upd
 - **Channel we can reach:** the National Honor Society has **16,000+ chapters and more than 1.4 million students** (NHS's own pages: https://www.nationalhonorsociety.org/about/the-history-of-nhs/ says "more than 16,000 active chapters", https://www.nationalhonorsociety.org/about/ says "more than 1.4 million students"; checked Oct 12, 2026. Wikipedia still lists 17,000+, citing the same History page, so we use NHS's lower, current number). Every chapter has a faculty sponsor who has to collect service-hour records.
 - **Bottom-up ceiling (illustrative, not a forecast):** 16,000 NHS chapters × $99/year Club plan ≈ **$1.6M/year** at list price, or about **$1.5M/year** after Stripe fees (16,000 × $95.14 kept, the figure the app shows), if every chapter paid. A realistic early goal is a few chapters in Fort Bend ISD. Pro revenue from individual paid tutors would come on top; we don't have a reliable count of student tutors, so we don't size it.
 - **In the product:** the Why TutorLoop page (https://aariv.me/Tutorloop/#about) has a **"Who pays, and how we reach them"** section that makes this case on screen: the first payer we can reach is the NHS adviser who collects every tutor's hours; the average chapter contributes about 1,000 service hours a year; one Club plan covers up to 50 tutors, so one adviser's yes brings a whole chapter; costs today are $0 a month; and the first real cost (a Pro sync server) is only built once paying users ask for it. Sources on the page: NHS's About and History pages, checked Oct 12, 2026.
-- **First users:** high school students in the Houston area who tutor 1–10 kids, starting with NHS and math-club members at Aariv's own school.
+- **First users:** high school students in the Houston area who tutor 1-10 kids, starting with NHS and math-club members at Aariv's own school.
 
 ## 4. Business model
 Freemium, with a B2B2C channel through school clubs.
 
 | Plan | Price | Who pays | What it includes today | Roadmap |
 |---|---|---|---|---|
-| Free | $0 | – | The full core loop for up to 3 active students | – |
+| Free | $0 | none | The full core loop for up to 3 active students | none |
 | Pro | $4/month | Tutors whose tutoring has become a real side business | Unlimited students | Cloud sync, scheduled reminders |
 | Club | $99/school year | NHS chapters and peer-tutoring clubs (up to 50 tutors) | Unlimited students for members | Sponsor dashboard, verified hour reports |
 
@@ -53,7 +53,7 @@ Freemium, with a B2B2C channel through school clubs.
 - **Principle:** we won't charge for Pro's sync or scheduled reminders until they are built. Checkout in the app today is a simulation.
 - Later option: a small fee on payment links if we add in-app payments.
 
-**How it pays for itself:** the first real bill is sync. On Cloudflare Workers Paid that is $5.00 a month minimum, including a database (developers.cloudflare.com/workers/platform/pricing, checked Oct 12, 2026). After card and billing fees that takes **2 monthly Pro tutors** ($3.56 kept each), **2 annual Pro tutors** ($34.40 a year each vs $60 a year), or **1 Club chapter** ($95.14 covers 19 months). The Why TutorLoop page shows this as a "Break-even, in customers" table computed from the same fee math. Not counted: our own time and usage above Cloudflare's included amounts. Growth comes through sponsors (one sponsor = 20–50 tutors) rather than paid ads.
+**How it pays for itself:** the first real bill is sync. On Cloudflare Workers Paid that is $5.00 a month minimum, including a database (developers.cloudflare.com/workers/platform/pricing, checked Oct 12, 2026). After card and billing fees that takes **2 monthly Pro tutors** ($3.56 kept each), **2 annual Pro tutors** ($34.40 a year each vs $60 a year), or **1 Club chapter** ($95.14 covers 19 months). The Why TutorLoop page shows this as a "Break-even, in customers" table computed from the same fee math. Not counted: our own time and usage above Cloudflare's included amounts. Growth comes through sponsors (one sponsor = 20-50 tutors) rather than paid ads.
 
 ## 5. Go-to-market
 The first four steps appear in this order on the app's Why TutorLoop page under "Who pays, and how we reach them".
@@ -78,7 +78,7 @@ The first four steps appear in this order on the app's Why TutorLoop page under 
 ## 8. Competition
 | Option | What it does well | Why it misses student tutors |
 |---|---|---|
-| Tutoring-business software: TutorBird ($16.95/mo + $4.95 per extra tutor), Teachworks Starter ($16.49/mo + $0.32 per student lesson) | Full business management: scheduling, billing, portals | Priced and designed for companies with staff; ~$17–19/mo is a lot for a student with two or three families |
+| Tutoring-business software: TutorBird ($16.95/mo + $4.95 per extra tutor), Teachworks Starter ($16.49/mo + $0.32 per student lesson) | Full business management: scheduling, billing, portals | Priced and designed for companies with staff; ~$17-19/mo is a lot for a student with two or three families |
 | Spreadsheets + notes app | Free, flexible | No parent updates, no reminders, nothing connected |
 | Venmo/Zelle | Moving money | No record of what each payment was for |
 | Paper or Google Form hour logs | What sponsors already accept | Re-typed by hand; nothing ties hours to actual sessions |

@@ -8,7 +8,7 @@ TutorLoop is a free web app for high school and college students who tutor. Log 
 
 *Screenshot of the live site (Oct 2026), taken with headless Chromium.*
 
-Built by Aariv Patel for the [Next Founders Hackathon](https://next-founders.devpost.com/) (October 2026).
+Built by Aariv Patel, a 9th-grade student at Dulles High School (Math and Science Academy) in Sugar Land, Texas, for the [Next Founders Hackathon](https://next-founders.devpost.com/) (October 2026).
 
 ---
 
@@ -19,15 +19,15 @@ Built by Aariv Patel for the [Next Founders Hackathon](https://next-founders.dev
 3. **Parent updates** turns a session's notes into an editable message; **Service hours** prints a sponsor log with a signature line.
 4. Tests (re-run Oct 12, 2026): `npm test` (65 unit + 11 money property tests + service-worker check), `npm i && npm run test:dom` (66), `python3 tests/e2e.py` (204), `python3 tests/print_test.py` (32), `python3 tests/tz_test.py` (50). GitHub Actions runs all five, plus the `tests/pitch_docs_test.py` docs check and the `tests/axe_baseline.py` WCAG 2.2 axe guard, on every push (`.github/workflows/test.yml`).
 
-## The problem
+## Why I built this
 
-Lots of high school and college students tutor younger kids in math, reading, or test prep. Some do it for pay, and some as volunteer tutoring for NHS service hours. Their "back office" is spread across the Notes app, Venmo, and memory:
+A lot of classmates at my high school tutor younger kids in algebra, geometry, reading, or test prep. Some do it as a paid side job, and others do volunteer peer tutoring to earn National Honor Society (NHS) service hours. Watching how people actually run their tutoring made the problem obvious: everything is scattered across the Notes app, a Venmo feed, parent text threads, and a paper hour sheet.
 
-- Sessions aren't tracked, so tutors **forget who owes them**, and chasing payment is awkward.
-- Parents want to know whether tutoring is working, but writing **progress updates** by hand takes time, so most tutors never send them.
-- At the end of the semester, volunteer tutoring hours have to be **re-typed into a log** for a sponsor.
+- Sessions aren't tracked in one place, so tutors **forget who still owes them**, and texting a parent about late money feels awkward.
+- Parents paying for lessons want to know if their kid is improving, but writing **progress updates** after homework takes time, so tutors skip them.
+- At the end of the semester, volunteer tutoring hours have to be **re-typed onto a sponsor sheet** from memory.
 
-Tutoring-company software (scheduling and billing suites) is built for businesses with staff. It's far more than a 16-year-old with three students needs or can pay for.
+Existing tutoring software is priced and designed for commercial tutoring centers with staff and payroll. It is way too heavy and expensive for a high school student tutoring three kids after school.
 
 ## Features
 
