@@ -21,7 +21,7 @@ Built by Aariv Patel for the [Next Founders Hackathon](https://next-founders.dev
 
 ## Why I built this
 
-A lot of classmates at my high school tutor younger kids in algebra, geometry, reading, or test prep. Some do it as a paid side job, and others do volunteer peer tutoring to earn National Honor Society (NHS) service hours. Watching how people actually run their tutoring made the problem obvious: everything is scattered across the Notes app, a Venmo feed, parent text threads, and a paper hour sheet.
+Many high school students tutor younger students in algebra, geometry, reading, or test prep. Some do it as a paid side job, and others do volunteer peer tutoring to earn National Honor Society (NHS) service hours. Watching how people actually run their tutoring made the problem obvious: everything is scattered across the Notes app, a Venmo feed, parent text threads, and a paper hour sheet.
 
 - Sessions aren't tracked in one place, so tutors **forget who still owes them**, and texting a parent about late money feels awkward.
 - Parents paying for lessons want to know if their kid is improving, but writing **progress updates** after homework takes time, so tutors skip them.
