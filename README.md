@@ -147,12 +147,6 @@ Repo **Settings → Pages → Build and deployment → Source: Deploy from a bra
 - axe-core reports 0 WCAG A/AA violations on every page at 390 and 1280 px. One best-practice note stays at 390 px: when the scrolling top menu has scrolled some page links out of view, axe's `skip-link` heuristic mistakes those in-page route links (`#log`, `#invoices`) for skip links without a target. They are menu links, not skip links; the real "Skip to content" link works and is tested. Renaming the routes to silence it would change every saved link, so it's left as is.
 - The update engine is rule-based and English-only. It's good at summarising notes, but it doesn't understand them like a person would, which is why every message is editable.
 
-## AI assistance
-
-This project was built with help from an AI assistant (Hark), which drafted code, tests and copy under Aariv Patel's direction. The app itself calls no AI service: parent updates come from the on-device, rule-based engine described above.
-
-The demo video on the Devpost page (rendered before submission on Oct 11, 2026) was also made with Hark: it has no voiceover, and Hark recorded the screen footage of the live app and drafted its on-screen captions, chapter cards and edit over a music bed. Its test card (47 passed) was true when it was rendered; the current counts are earlier in this README.
-
 ## Roadmap
 
 1. Cloud sync and login (Pro)
