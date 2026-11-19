@@ -871,9 +871,9 @@
 
   const api = {
     SCHEMA_VERSION, FREE_CLIENT_LIMIT, MAX_MINUTES, uid, emptyState, cents, money, plural, isValidDate, addDays,
-    sessionAmount, sessionDue, planPayment, applyPayment, carryCredit, settleCovered, addSession, editSession, setPaid, deleteSession, deleteClient, creditNote, MAX_PAYMENT, clientById, validateClient, validateSession, duplicateNames, duplicateNamesWarning, clientLabel, stats, monthlySeries, balances, lastSession,
-    serviceProgress, rangePreset, topicList, sentiment, sentence, progressReport, reminderMessage, invoice,
-    APP_URL, PAY_METHODS, guessPayMethod, paymentText, paymentSentence, referralFooter,
+    sessionAmount, sessionDue, planPayment, applyPayment, settleCovered, addSession, editSession, setPaid, deleteSession, deleteClient, creditNote, MAX_PAYMENT, clientById, validateClient, validateSession, duplicateNames, duplicateNamesWarning, clientLabel, stats, monthlySeries, balances, lastSession,
+    serviceProgress, rangePreset, sentiment, sentence, progressReport, reminderMessage, invoice,
+    APP_URL, PAY_METHODS, paymentText, paymentSentence, referralFooter,
     csvEscape, volunteerCSV, sessionsCSV, importState, demoState, fmtDate, fmtMonth, monthKey,
     summaryMonths, monthSummary, summaryText, proValue
   };
