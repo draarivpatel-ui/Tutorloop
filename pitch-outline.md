@@ -92,7 +92,7 @@ Where TutorLoop is different: of the options above, it's the only one built arou
 - **This semester:** pilot Club with one NHS chapter (free); recurring sessions; annual Pro pricing test.
 - **Before charging for Pro:** cloud sync and login (Postgres with row-level security); scheduled payment reminders.
 - **Club v1:** sponsor dashboard with verified service-hour reports.
-- **Later:** optional LLM polish for parent updates (Pro); optional payment links.
+- **Later:** optional hosted polish for parent updates (Pro); optional payment links.
 
 ## 10. What we're asking for
 Ten student tutors and two NHS sponsors willing to pilot TutorLoop this semester, and honest feedback on what they'd pay for.
@@ -102,5 +102,5 @@ Ten student tutors and two NHS sponsors willing to pilot TutorLoop this semester
 ### Likely judge questions (short answers)
 - **"Why would a student pay?"** Most won't, and that's fine: the free tier costs ~$0 to serve. Pro is for tutors whose side business has outgrown three students; Club is paid by the chapter, not the student.
 - **"Isn't localStorage fragile?"** Yes, for a business. That's why JSON backup/restore exists today and sync is the first paid feature. Corrupted storage is set aside instead of overwritten.
-- **"Is the 'AI' real?"** It's a deterministic on-device text engine (topic ranking, progress/struggle scoring with negation, recency-weighted trend). It's free, private, and explainable. An LLM rewrite is a roadmap option for Pro.
+- **"Is the report engine deterministic?"** It's a deterministic on-device text engine (topic ranking, progress/struggle scoring with negation, recency-weighted trend). It's free, private, and explainable. A hosted rewrite is a roadmap option for Pro.
 - **"What about student data privacy?"** Nothing leaves the device today. When sync arrives, per-tutor row-level security and permanent delete, which already exists locally.

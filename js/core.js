@@ -34,6 +34,7 @@
 
   function money(n) {
     const v = cents(n), neg = v < 0;
+    if (!Number.isFinite(v)) return '$0.00'; // NaN/Infinity from hand-edited data never prints as "$NaN.undefined"
     const [whole, frac] = Math.abs(v).toFixed(2).split('.');
     return (neg ? '-' : '') + '$' + whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '.' + frac;
   }
@@ -162,7 +163,7 @@
     else if (s.date < MIN_DATE) errors.push('Enter a date from the year 2000 on (check the year).');
     else if (isValidDate(today) && s.date > addDays(today, 1)) errors.push('That date is in the future. Check the year: log a session after it happens.');
     const m = Number(s.minutes);
-    if (!Number.isFinite(m) || m <= 0 || m > MAX_MINUTES) errors.push('Duration must be between 1 and ' + MAX_MINUTES + ' minutes.');
+    if (!Number.isInteger(m) || m <= 0 || m > MAX_MINUTES) errors.push('Duration must be a whole number of minutes between 1 and ' + MAX_MINUTES + '.');
     if (s.rate != null && s.rate !== '' && (isNaN(Number(s.rate)) || Number(s.rate) < 0 || Number(s.rate) > 1000)) errors.push('Rate override must be between $0 and $1,000.');
     return errors;
   }
@@ -434,8 +435,11 @@
   function reminderMessage(state, clientId) {
     const c = clientById(state, clientId);
     if (!c) return '';
-    const items = state.sessions.filter(s => s.clientId === clientId && !s.paid && !s.volunteer)
-      .sort((a, b) => a.date.localeCompare(b.date));
+    const unpaid = state.sessions.filter(s => s.clientId === clientId && !s.paid && !s.volunteer);
+    // A $0 session has nothing to bill: skip it in the lines when priced sessions exist,
+    // but never produce an empty reminder while anything is still unpaid.
+    const priced = unpaid.filter(s => sessionAmount(s, c) > 0);
+    const items = (priced.length ? priced : unpaid).sort((a, b) => a.date.localeCompare(b.date));
     if (!items.length) return '';
     const total = dueTotal(items, c);
     const first = String(c.name).trim().split(/\s+/)[0];
@@ -459,9 +463,11 @@
 
   /** Months that have sessions, newest first, always including `current` (YYYY-MM). */
   function summaryMonths(state, current) {
-    const set = new Set(state.sessions.map(s => monthKey(s.date)).filter(Boolean));
+    const set = new Set(state.sessions.map(s => monthKey(s.date)));
+    for (const p of state.payments || []) set.add(monthKey(p.date)); // a payment-only month still exists in the ledger
+    set.delete(undefined);
     if (current) set.add(current);
-    return [...set].sort().reverse();
+    return [...set].filter(Boolean).sort().reverse();
   }
 
   /**
@@ -569,6 +575,7 @@
     for (const s of state.sessions) { if (s.volunteer) continue; const a = sessionAmount(s, clientById(state, s.clientId)); if (a > 0) { mins += Number(s.minutes) || 0; amt += a; } }
     if (!mins || !amt) return null;
     const rate = cents(amt / (mins / 60));
+    if (!(rate > 0)) return null; // a sub-half-cent average can't quote a price-per-hour
     return { rate, minutes: Math.max(1, Math.round(price / rate * 60)) };
   }
 
@@ -583,8 +590,9 @@
   function invoice(state, clientId, today) {
     const c = clientById(state, clientId);
     if (!c) return null;
-    const items = state.sessions
-      .filter(s => s.clientId === clientId && !s.paid && !s.volunteer)
+    const unpaid = state.sessions.filter(s => s.clientId === clientId && !s.paid && !s.volunteer);
+    const priced = unpaid.filter(s => sessionAmount(s, c) > 0);
+    const items = (priced.length ? priced : unpaid)
       .sort((a, b) => a.date.localeCompare(b.date))
       .map(s => ({ id: s.id, date: s.date, minutes: Number(s.minutes), topics: s.topics || '', amount: sessionDue(s, c), full: sessionAmount(s, c), partPaid: Number(s.partPaid) > 0 ? cents(s.partPaid) : 0 }));
     const total = cents(items.reduce((a, i) => a + Math.round(i.amount * 100), 0) / 100);
@@ -598,7 +606,7 @@
    */
   function csvEscape(v) {
     let s = String(v == null ? '' : v);
-    if (typeof v !== 'number' && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    if (typeof v !== 'number' && /^\s*[=+\-@\t\r]/.test(s)) s = "'" + s; // first NON-whitespace char: a padded cell still injects
     return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   }
 
@@ -647,28 +655,56 @@
       name: str(p.name, 80), business: str(p.business, 100), email: str(p.email, 120), venmo: str(p.venmo, 80),
       payMethod: str(p.payMethod, 30).trim(), referralFooter: p.referralFooter === true,
       plan: ['free', 'pro', 'club'].includes(p.plan) ? p.plan : base.profile.plan,
-      serviceGoal: Number(p.serviceGoal) > 0 ? Math.min(1000, Number(p.serviceGoal)) : ''
+      serviceGoal: Number.isFinite(Number(p.serviceGoal)) && Number(p.serviceGoal) > 0 ? Math.min(1000, Number(p.serviceGoal)) : ''
     };
+    // A hand-edited or corrupted file can carry non-finite numbers (JSON parses 1e309 as Infinity):
+    // clamp them out so an import can never mint infinite rates, credits or payments.
+    const fin = v => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
     const seen = new Set();
-    const clients = data.clients.filter(c => c && c.id && c.name && !seen.has(String(c.id)) && seen.add(String(c.id))).map(c => ({
+    // Ids feed hash routes like #students/<id>: anything that could split, decode or confuse the route stays out.
+    const safeId = v => { const s = String(v); return s.length > 0 && s.length <= 80 && !/[\s/%#?\\]/.test(s); };
+    const clients = data.clients.filter(c => c && c.id && safeId(c.id) && c.name && String(c.name).trim() &&
+      !seen.has(String(c.id)) && seen.add(String(c.id))).map(c => ({
       id: String(c.id), name: str(c.name, 80), subject: str(c.subject, 80), grade: str(c.grade, 20),
-      rate: Math.max(0, Number(c.rate) || 0), parentName: str(c.parentName, 80), parentEmail: str(c.parentEmail, 120),
+      rate: Math.min(1000, Math.max(0, fin(c.rate))), parentName: str(c.parentName, 80),
+      parentEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str(c.parentEmail, 120)) ? str(c.parentEmail, 120) : '',
       volunteerDefault: !!c.volunteerDefault, archived: !!c.archived
     }));
     const ids = new Set(clients.map(c => c.id));
     const sids = new Set();
-    const sessions = data.sessions.filter(s => s && s.id && ids.has(String(s.clientId)) && isValidDate(s.date) &&
-      Number(s.minutes) > 0 && Number(s.minutes) <= MAX_MINUTES && !sids.has(String(s.id)) && sids.add(String(s.id))).map(s => ({
+    // Same date bounds the Log form enforces: a backup can't smuggle in 1800 or 9999 sessions.
+    const todayImp = addDays(new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10), 1);
+    const dateOk = d => isValidDate(d) && d >= MIN_DATE && d <= todayImp;
+    const sessions = data.sessions.filter(s => s && s.id && safeId(s.id) && safeId(s.clientId) && ids.has(String(s.clientId)) && dateOk(s.date) &&
+      Number.isInteger(Number(s.minutes)) && Number(s.minutes) > 0 && Number(s.minutes) <= MAX_MINUTES && !sids.has(String(s.id)) && sids.add(String(s.id))).map(s => ({
       id: String(s.id), clientId: String(s.clientId), date: s.date, minutes: Number(s.minutes),
-      rate: s.rate == null || s.rate === '' || isNaN(Number(s.rate)) ? null : Math.max(0, Number(s.rate)),
-      topics: str(s.topics, 300), notes: str(s.notes, 2000), paid: !!s.paid, volunteer: !!s.volunteer,
-      partPaid: !s.paid && !s.volunteer && Number(s.partPaid) > 0 ? Math.min(cents(s.partPaid), 1e6) : 0,
-      heldPaid: s.paid && !s.volunteer && Number(s.heldPaid) > 0 ? Math.min(cents(s.heldPaid), 1e6) : 0
+      rate: s.rate == null || s.rate === '' || !Number.isFinite(Number(s.rate)) ? null : Math.min(1000, Math.max(0, Number(s.rate))),
+      topics: str(s.topics, 300), notes: str(s.notes, 2000),
+      volunteer: !!s.volunteer,
+      paid: s.volunteer ? false : !!s.paid, // a volunteer session is never "paid"; the flags can't contradict
+      partPaid: !s.paid && !s.volunteer && Number.isFinite(Number(s.partPaid)) && Number(s.partPaid) > 0 ? Math.min(cents(s.partPaid), 1e6) : 0,
+      heldPaid: s.paid && !s.volunteer && Number.isFinite(Number(s.heldPaid)) && Number(s.heldPaid) > 0 ? Math.min(cents(s.heldPaid), 1e6) : 0
     }));
     sessions.forEach(s => { if (!s.partPaid) delete s.partPaid; if (!s.heldPaid) delete s.heldPaid; });
     const pids = new Set();
-    const payments = (Array.isArray(data.payments) ? data.payments : []).filter(x => x && x.id && ids.has(String(x.clientId)) && isValidDate(x.date) &&
-      Number(x.amount) > 0 && !pids.has(String(x.id)) && pids.add(String(x.id))).slice(0, 5000).map(x => ({ id: String(x.id), clientId: String(x.clientId), date: x.date, amount: Math.min(cents(x.amount), 1e6) }));
+    const payments = (Array.isArray(data.payments) ? data.payments : []).filter(x => x && x.id && safeId(x.id) && safeId(x.clientId) && ids.has(String(x.clientId)) && dateOk(x.date) &&
+      Number.isFinite(Number(x.amount)) && Number(x.amount) > 0 && !pids.has(String(x.id)) && pids.add(String(x.id))).slice(0, 5000).map(x => ({ id: String(x.id), clientId: String(x.clientId), date: x.date, amount: Math.min(cents(x.amount), 1e6) }));
+    // A part-payment claim (partPaid/heldPaid) only exists because a payments-log entry created it. A claim
+    // beyond what the log records for that student is phantom "already paid" money: clamp to the log, oldest first.
+    const logged = new Map();
+    for (const x of payments) logged.set(x.clientId, Math.round((logged.get(x.clientId) || 0) + x.amount * 100));
+    for (const c of clients) {
+      let left = logged.get(c.id) || 0;
+      for (const s of sessions.filter(x => x.clientId === c.id).sort((a, b) => a.date.localeCompare(b.date))) {
+        for (const key of ['partPaid', 'heldPaid']) {
+          if (Number(s[key]) > 0) {
+            const keep = Math.min(Math.round(Number(s[key]) * 100), left);
+            left -= keep;
+            if (keep <= 0) delete s[key]; else s[key] = keep / 100;
+          }
+        }
+      }
+    }
     const out = { version: SCHEMA_VERSION, profile, clients, sessions, payments };
     settleCovered(out);   // a backup made before edits settled covered sessions: same rule as the app
     if (data.sample === true) out.sample = true;   // made with "Try it with sample data"; the app shows a "Start fresh" bar
@@ -709,16 +745,25 @@
     return { ok: true, amount: paying / 100, owedBefore: owed / 100, owedAfter: (owed - paying) / 100, steps, settled: steps.filter(x => x.settles).length };
   }
 
-  /** Apply a plan from planPayment() to the state and log it. */
+  /** Apply a plan from planPayment() to the state and log it. Steps landing on a session that is
+   *  already paid or volunteer (a stale plan) are skipped, and any overshoot is settled the same
+   *  way editSession settles it, so a part payment can never sit on a paid session. */
   function applyPayment(state, clientId, plan, date) {
     if (!plan || !plan.ok) return state;
+    let applied = 0;
     for (const st of plan.steps) {
-      const s = state.sessions.find(x => x.id === st.id); if (!s) continue;
+      const s = state.sessions.find(x => x.id === st.id); if (!s || s.paid || s.volunteer) continue;
       if (st.settles) { s.paid = true; delete s.partPaid; }
       else s.partPaid = cents((Number(s.partPaid) || 0) + st.applied);
+      applied = cents(applied + st.applied);
     }
+    // A stale plan's skipped money is still money received: carry it to the family's other
+    // unpaid sessions so the ledger claim matches the payment log.
+    const unapplied = cents(Math.round(plan.amount * 100 - applied * 100) / 100);
+    if (unapplied > 0) carryCredit(state, clientId, unapplied);
     if (!Array.isArray(state.payments)) state.payments = [];
     state.payments.push({ id: uid('p'), clientId, date, amount: plan.amount });
+    settleCovered(state);
     return state;
   }
 
@@ -752,7 +797,9 @@
    */
   function settleCovered(state) {
     const out = { settled: 0, moved: 0, leftover: 0 };
-    for (let guard = 0; guard < 10000; guard++) {
+    // Each pass settles at least one session, so the loop can never need more rounds than sessions.
+    const maxRounds = state.sessions.length + 10;
+    for (let guard = 0; guard < maxRounds; guard++) {
       const s = state.sessions.find(x => !x.paid && !x.volunteer && Number(x.partPaid) > 0 &&
         Math.round(Number(x.partPaid) * 100) >= Math.round(sessionAmount(x, clientById(state, x.clientId)) * 100));
       if (!s) break;
@@ -786,7 +833,14 @@
     let carry = { settled: 0, moved: 0, leftover: 0 };
     if (prior) {
       if (s.volunteer || s.clientId !== oldClient) carry = carryCredit(state, oldClient, prior);
-      else if (s.paid) s.heldPaid = prior;
+      else if (s.paid) {
+        // The held amount can never exceed what the session now costs; the excess carries on.
+        const amtC = Math.round(sessionAmount(s, clientById(state, s.clientId)) * 100);
+        const heldC = Math.min(Math.round(prior * 100), amtC);
+        if (heldC > 0) s.heldPaid = heldC / 100;
+        const excessC = Math.round(prior * 100) - heldC;
+        if (excessC > 0) carry = carryCredit(state, oldClient, excessC / 100);
+      }
       else s.partPaid = prior;
     }
     const more = settleCovered(state);
@@ -815,12 +869,15 @@
     return settleCovered(state);
   }
 
-  /** Delete a session. A part payment on it moves to the family's other unpaid sessions. */
+  /** Delete a session. Money already received for it (partPaid on an unpaid one, or heldPaid held on a
+   *  paid one) moves to the family's other unpaid sessions. Money received is never silently dropped. */
   function deleteSession(state, id) {
     const s = state.sessions.find(x => x.id === id);
     state.sessions = state.sessions.filter(x => x.id !== id);
-    if (!s || s.paid || s.volunteer || !(Number(s.partPaid) > 0)) return { settled: 0, moved: 0, leftover: 0 };
-    return carryCredit(state, s.clientId, s.partPaid);
+    if (!s || s.volunteer) return { settled: 0, moved: 0, leftover: 0 };
+    const claim = s.paid ? (Number(s.heldPaid) > 0 ? cents(s.heldPaid) : 0) : (Number(s.partPaid) > 0 ? cents(s.partPaid) : 0);
+    if (!claim) return { settled: 0, moved: 0, leftover: 0 };
+    return carryCredit(state, s.clientId, claim);
   }
 
   /** Permanently delete a student with everything about them: sessions AND recorded payments

@@ -36,7 +36,9 @@
   /** Snapshot-based undo for any change. */
   function commit(msg, mutate, returnSel) {
     const before = JSON.stringify(state);
-    const result = mutate();
+    let result;
+    try { result = mutate(); }
+    catch (e) { state = C.importState(before); save(); render(); throw e; }   // a failed write never leaves half a change
     if (typeof msg === 'function') msg = msg(result);   // a message that depends on what changed (e.g. money moved)
     save();
     render();
@@ -896,7 +898,14 @@
         break;
       case 'startFresh':
         location.hash = 'dashboard';
-        commit('Sample data cleared. Log your first real session below.', () => { state = C.emptyState(); });
+        // Remove the three sample students and their rows, but keep anything the user added on top.
+        commit('Sample data cleared. Log your first real session below.', () => {
+          const demo = new Set(['c_maya', 'c_ethan', 'c_sofia']);
+          state.clients = state.clients.filter(c => !demo.has(c.id));
+          state.sessions = state.sessions.filter(s => !demo.has(s.clientId));
+          state.payments = (state.payments || []).filter(x => !demo.has(x.clientId));
+          delete state.sample;
+        });
         setTimeout(focusQuickStart, 60);   // after the hashchange re-render, so focus lands on the live form
         break;
       case 'focusQuick': focusQuickStart(); break;
